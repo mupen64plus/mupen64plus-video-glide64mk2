@@ -110,6 +110,7 @@ PFNGLCREATEPROGRAMOBJECTARBPROC glCreateProgramObjectARB;
 PFNGLATTACHOBJECTARBPROC glAttachObjectARB;
 PFNGLLINKPROGRAMARBPROC glLinkProgramARB;
 PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
+PFNGLGETHANDLEARBPROC glGetHandleARB;
 PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
 PFNGLUNIFORM1IARBPROC glUniform1iARB;
 PFNGLUNIFORM4IARBPROC glUniform4iARB;
@@ -626,6 +627,7 @@ grSstWinOpen(
     glAttachObjectARB = (PFNGLATTACHOBJECTARBPROC)wglGetProcAddress("glAttachObjectARB");
     glLinkProgramARB = (PFNGLLINKPROGRAMARBPROC)wglGetProcAddress("glLinkProgramARB");
     glUseProgramObjectARB = (PFNGLUSEPROGRAMOBJECTARBPROC)wglGetProcAddress("glUseProgramObjectARB");
+    glGetHandleARB = (PFNGLGETHANDLEARBPROC)wglGetProcAddress("glGetHandleARB");
     glGetUniformLocationARB = (PFNGLGETUNIFORMLOCATIONARBPROC)wglGetProcAddress("glGetUniformLocationARB");
     glUniform1iARB = (PFNGLUNIFORM1IARBPROC)wglGetProcAddress("glUniform1iARB");
     glUniform4iARB = (PFNGLUNIFORM4IARBPROC)wglGetProcAddress("glUniform4iARB");
@@ -1661,12 +1663,12 @@ grBufferClear( GrColor_t color, GrAlpha_t alpha, FxU32 depth )
 FX_ENTRY void FX_CALL
 grBufferSwap( FxU32 swap_interval )
 {
-   GLuint program;
+   GLhandleARB program;
 
 	glFinish();
 //  printf("rendercallback is %p\n", renderCallback);
   if(renderCallback) {
-      glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*) &program);
+      program = glGetHandleARB(GL_PROGRAM_OBJECT_ARB);
       glUseProgramObjectARB(0);
       (*renderCallback)(1);
       if (program)
