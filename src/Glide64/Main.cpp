@@ -370,14 +370,14 @@ void ReadSettings ()
     ERRLOG("Could not open configuration!");
     return;
   }
-
+  
   settings.card_id = (BYTE)Config_ReadInt ("card_id", "Card ID", 0, TRUE, FALSE);
   //settings.lang_id not needed
   // depth_bias = -Config_ReadInt ("depth_bias", "Depth bias level", 0, TRUE, FALSE);
   settings.res_data = 0;
   settings.scr_res_x = settings.res_x = Config_ReadScreenInt("ScreenWidth");
   settings.scr_res_y = settings.res_y = Config_ReadScreenInt("ScreenHeight");
-
+  
   settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 0);
   settings.ssformat = (BOOL)Config_ReadInt("ssformat", "TODO:ssformat", 0);
   //settings.fast_crc = (BOOL)Config_ReadInt ("fast_crc", "Fast CRC", 0);
@@ -393,6 +393,7 @@ void ReadSettings ()
   settings.wrpVRAM = (BYTE)Config_ReadInt ("wrpVRAM", "Wrapper VRAM", 0, TRUE, FALSE);
   settings.wrpFBO = (BOOL)Config_ReadInt ("wrpFBO", "Wrapper FBO", 1, TRUE, TRUE);
   settings.wrpAnisotropic = (BOOL)Config_ReadInt ("wrpAnisotropic", "Wrapper Anisotropic Filtering", 0, TRUE, TRUE);
+  //settings.wrpAntiAliasing = Config_ReadInt ("wrpAntiAliasing", "Wrapper Antialiasing", 0, TRUE, FALSE);
 
 #ifndef _ENDUSER_RELEASE_
   settings.autodetect_ucode = (BOOL)Config_ReadInt ("autodetect_ucode", "Auto-detect microcode", 1);
@@ -1127,6 +1128,9 @@ int InitGfx ()
   // use UMA if available
   voodoo.tex_UMA = FALSE;
   //*
+  
+
+  
   if (strstr(extensions, " TEXUMA ")) {
     // we get better texture cache hits with UMA on
     grEnable(GR_TEXTURE_UMA_EXT);
@@ -1829,7 +1833,8 @@ EXPORT int CALL InitiateGFX (GFX_INFO Gfx_Info)
 #endif
 
   debug_init ();    // Initialize debugger
-
+  
+  
   gfx = Gfx_Info;
 
 #ifdef WINPROC_OVERRIDE
@@ -1848,12 +1853,21 @@ EXPORT int CALL InitiateGFX (GFX_INFO Gfx_Info)
   CountCombine();
   if (fb_depth_render_enabled)
     ZLUT_init();
-
+  
+  // [Willrandship] Initialize AntiAliasing if set. 
+  // (I have no idea where this should actually go, but this seems as
+  //  good a place as any.) 
+  /*
+  if(settings.wrpAntiAliasing > 0){
+    CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLEBUFFERS, 1);
+    CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLESAMPLES, settings.wrpAntiAliasing);
+  } */
+  
   char strConfigWrapperExt[] = "grConfigWrapperExt";
   GRCONFIGWRAPPEREXT grConfigWrapperExt = (GRCONFIGWRAPPEREXT)grGetProcAddress(strConfigWrapperExt);
   if (grConfigWrapperExt)
     grConfigWrapperExt(settings.wrpResolution, settings.wrpVRAM * 1024 * 1024, settings.wrpFBO, settings.wrpAnisotropic);
-
+  
   grGlideInit ();
   grSstSelect (0);
   const char *extensions = grGetString (GR_EXTENSION);
@@ -1867,7 +1881,9 @@ EXPORT int CALL InitiateGFX (GFX_INFO Gfx_Info)
     evoodoo = 0;
     voodoo.has_2mb_tex_boundary = 1;
   }
+  
 
+  
   return TRUE;
 }
 
