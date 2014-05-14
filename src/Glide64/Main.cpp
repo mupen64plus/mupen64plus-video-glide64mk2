@@ -393,7 +393,6 @@ void ReadSettings ()
   settings.wrpVRAM = (BYTE)Config_ReadInt ("wrpVRAM", "Wrapper VRAM", 0, TRUE, FALSE);
   settings.wrpFBO = (BOOL)Config_ReadInt ("wrpFBO", "Wrapper FBO", 1, TRUE, TRUE);
   settings.wrpAnisotropic = (BOOL)Config_ReadInt ("wrpAnisotropic", "Wrapper Anisotropic Filtering", 0, TRUE, TRUE);
-  //settings.wrpAntiAliasing = Config_ReadInt ("wrpAntiAliasing", "Wrapper Antialiasing", 0, TRUE, FALSE);
 
 #ifndef _ENDUSER_RELEASE_
   settings.autodetect_ucode = (BOOL)Config_ReadInt ("autodetect_ucode", "Auto-detect microcode", 1);
@@ -1128,9 +1127,6 @@ int InitGfx ()
   // use UMA if available
   voodoo.tex_UMA = FALSE;
   //*
-  
-
-  
   if (strstr(extensions, " TEXUMA ")) {
     // we get better texture cache hits with UMA on
     grEnable(GR_TEXTURE_UMA_EXT);
@@ -1853,15 +1849,6 @@ EXPORT int CALL InitiateGFX (GFX_INFO Gfx_Info)
   CountCombine();
   if (fb_depth_render_enabled)
     ZLUT_init();
-  
-  // [Willrandship] Initialize AntiAliasing if set. 
-  // (I have no idea where this should actually go, but this seems as
-  //  good a place as any.) 
-  /*
-  if(settings.wrpAntiAliasing > 0){
-    CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLEBUFFERS, 1);
-    CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLESAMPLES, settings.wrpAntiAliasing);
-  } */
   
   char strConfigWrapperExt[] = "grConfigWrapperExt";
   GRCONFIGWRAPPEREXT grConfigWrapperExt = (GRCONFIGWRAPPEREXT)grGetProcAddress(strConfigWrapperExt);
