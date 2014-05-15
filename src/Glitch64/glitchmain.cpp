@@ -515,7 +515,6 @@ grSstWinOpen(
   //   SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
   CoreVideo_GL_SetAttribute(M64P_GL_DEPTH_SIZE, 16);
   
-  // [Willrandship]
   if(aalevel > 0){
     CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLEBUFFERS, 1);
     CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLESAMPLES, aalevel);
