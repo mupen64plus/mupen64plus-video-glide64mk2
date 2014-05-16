@@ -482,7 +482,7 @@ grSstWinOpen(
   hwnd_win = (HWND)hWnd;
 #endif // _WIN32
   width = height = 0;
-  
+
   m64p_handle video_general_section;
   printf("&ConfigOpenSection is %p\n", &ConfigOpenSection);
   if (ConfigOpenSection("Video-General", &video_general_section) != M64ERR_SUCCESS)
@@ -494,12 +494,12 @@ grSstWinOpen(
   m64p_handle video_glide64mk2_section;
   ConfigOpenSection("Video-Glide64mk2", &video_glide64mk2_section);
   int aalevel = ConfigGetParamInt(video_glide64mk2_section, "wrpAntiAliasing");
-  
+
   width = ConfigGetParamInt(video_general_section, "ScreenWidth");
   height = ConfigGetParamInt(video_general_section, "ScreenHeight");
   fullscreen = ConfigGetParamBool(video_general_section, "Fullscreen");
   int vsync = ConfigGetParamBool(video_general_section, "VerticalSync");
-  
+
   //viewport_offset = ((screen_resolution>>2) > 20) ? screen_resolution >> 2 : 20;
   // ZIGGY viewport_offset is WIN32 specific, with SDL just set it to zero
   viewport_offset = 0; //-10 //-20;
@@ -514,7 +514,7 @@ grSstWinOpen(
   //   SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
   //   SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
   CoreVideo_GL_SetAttribute(M64P_GL_DEPTH_SIZE, 16);
-  
+
   if(aalevel > 0){
     CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLEBUFFERS, 1);
     CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLESAMPLES, aalevel);
