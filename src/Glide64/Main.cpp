@@ -370,14 +370,14 @@ void ReadSettings ()
     ERRLOG("Could not open configuration!");
     return;
   }
-  
+
   settings.card_id = (BYTE)Config_ReadInt ("card_id", "Card ID", 0, TRUE, FALSE);
   //settings.lang_id not needed
   // depth_bias = -Config_ReadInt ("depth_bias", "Depth bias level", 0, TRUE, FALSE);
   settings.res_data = 0;
   settings.scr_res_x = settings.res_x = Config_ReadScreenInt("ScreenWidth");
   settings.scr_res_y = settings.res_y = Config_ReadScreenInt("ScreenHeight");
-  
+
   settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 0);
   settings.ssformat = (BOOL)Config_ReadInt("ssformat", "TODO:ssformat", 0);
   //settings.fast_crc = (BOOL)Config_ReadInt ("fast_crc", "Fast CRC", 0);
@@ -1829,8 +1829,7 @@ EXPORT int CALL InitiateGFX (GFX_INFO Gfx_Info)
 #endif
 
   debug_init ();    // Initialize debugger
-  
-  
+
   gfx = Gfx_Info;
 
 #ifdef WINPROC_OVERRIDE
@@ -1849,12 +1848,12 @@ EXPORT int CALL InitiateGFX (GFX_INFO Gfx_Info)
   CountCombine();
   if (fb_depth_render_enabled)
     ZLUT_init();
-  
+
   char strConfigWrapperExt[] = "grConfigWrapperExt";
   GRCONFIGWRAPPEREXT grConfigWrapperExt = (GRCONFIGWRAPPEREXT)grGetProcAddress(strConfigWrapperExt);
   if (grConfigWrapperExt)
     grConfigWrapperExt(settings.wrpResolution, settings.wrpVRAM * 1024 * 1024, settings.wrpFBO, settings.wrpAnisotropic);
-  
+
   grGlideInit ();
   grSstSelect (0);
   const char *extensions = grGetString (GR_EXTENSION);
@@ -1868,9 +1867,7 @@ EXPORT int CALL InitiateGFX (GFX_INFO Gfx_Info)
     evoodoo = 0;
     voodoo.has_2mb_tex_boundary = 1;
   }
-  
 
-  
   return TRUE;
 }
 
