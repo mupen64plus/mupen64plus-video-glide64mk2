@@ -131,7 +131,7 @@ int exception = FALSE;
 int evoodoo = 0;
 int ev_fullscreen = 0;
 
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
 #define WINPROC_OVERRIDE
 #endif
 
@@ -1634,7 +1634,7 @@ EXPORT void CALL ChangeWindow (void)
     {
       to_fullscreen = TRUE;
       ev_fullscreen = TRUE;
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
       if (gfx.hStatusBar)
         ShowWindow( gfx.hStatusBar, SW_HIDE );
       ShowCursor( FALSE );
@@ -1644,7 +1644,7 @@ EXPORT void CALL ChangeWindow (void)
     {
       ev_fullscreen = FALSE;
       InitGfx ();
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
       ShowCursor( TRUE );
       if (gfx.hStatusBar)
         ShowWindow( gfx.hStatusBar, SW_SHOW );
@@ -1660,7 +1660,7 @@ EXPORT void CALL ChangeWindow (void)
     if (!fullscreen)
     {
       to_fullscreen = TRUE;
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
       if (gfx.hStatusBar)
         ShowWindow( gfx.hStatusBar, SW_HIDE );
       ShowCursor( FALSE );
@@ -1669,7 +1669,7 @@ EXPORT void CALL ChangeWindow (void)
     else
     {
       ReleaseGfx ();
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
       ShowCursor( TRUE );
       if (gfx.hStatusBar)
         ShowWindow( gfx.hStatusBar, SW_SHOW );
@@ -2642,7 +2642,7 @@ int CheckKeyPressed(int key, int mask)
 static Glide64Keys g64Keys;
   if (settings.use_hotkeys == 0)
     return 0;
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
   return (GetAsyncKeyState(g64Keys[key]) & mask);
 #else
   if (grKeyPressed)
@@ -2725,7 +2725,7 @@ bool wxDLLApp::OnInit()
   return true;
 }
 
-#ifndef __WINDOWS__
+#ifndef __WINDOWS_DISABLED__
 int __attribute__ ((constructor)) DllLoad(void);
 int __attribute__ ((destructor)) DllUnload(void);
 #endif
@@ -2750,7 +2750,7 @@ int DllUnload(void)
     return TRUE;
 }
 
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
 extern "C" int WINAPI DllMain (HINSTANCE hinstDLL,
                      wxUint32 fdwReason,
                      LPVOID lpReserved)

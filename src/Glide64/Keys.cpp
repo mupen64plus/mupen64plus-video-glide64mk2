@@ -47,7 +47,7 @@
 
 Glide64Keys::Glide64Keys()
 {
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
 _keys[G64_VK_CONTROL] = 0x11;
 _keys[G64_VK_ALT]     = 0x12;
 _keys[G64_VK_INSERT]  = 0x2D;
