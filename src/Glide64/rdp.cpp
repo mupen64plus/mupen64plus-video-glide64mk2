@@ -360,10 +360,10 @@ void microcheck ()
   }
 }
 
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
 static void GetClientSize(int * width, int * height)
 {
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
   RECT win_rect;
   GetClientRect (gfx.hWnd, &win_rect);
   *width = win_rect.right;
@@ -380,7 +380,7 @@ void drawNoFullscreenMessage()
 //the code below will compile on any OS
 //but it works only on windows, because
 //I don't know, how to initialize GFXWindow on other OS
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
   LOG ("drawNoFullscreenMessage ()\n");
   if (rdp.window_changed)
   {

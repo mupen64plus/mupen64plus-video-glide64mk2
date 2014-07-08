@@ -310,7 +310,7 @@ __inline wxUint32 segoffset (wxUint32 so)
 
 // this is already defined in API
 /*
-#ifdef __WINDOWS__
+#ifdef __WINDOWS_DISABLED__
 #define EXPORT					__declspec(dllexport)
 #define CALL						_cdecl
 #else
