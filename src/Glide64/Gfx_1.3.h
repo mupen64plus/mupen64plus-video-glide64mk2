@@ -308,16 +308,6 @@ __inline wxUint32 segoffset (wxUint32 so)
 /* Plugin types */
 #define PLUGIN_TYPE_GFX				2
 
-// this is already defined in API
-/*
-#ifdef __WINDOWS__
-#define EXPORT					__declspec(dllexport)
-#define CALL						_cdecl
-#else
-#define EXPORT					extern
-#define CALL						
-#endif
-*/
 /***** Structures *****/
 typedef struct {
 	wxUint16 Version;        /* Set to 0x0103 */
