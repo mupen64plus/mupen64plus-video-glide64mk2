@@ -309,6 +309,9 @@ endif
 ifeq ($(NO_ASM), 1)
   CFLAGS += -DNO_ASM
 endif
+ifeq ($(NO_SSE), 1)
+  CFLAGS += -DNOSSE
+endif
 
 # set installation options
 ifeq ($(PREFIX),)
@@ -409,6 +412,7 @@ targets:
 	@echo "  Options:"
 	@echo "    BITS=32       == build 32-bit binaries on 64-bit machine"
 	@echo "    NO_ASM=1      == build without inline assembly code (x86 MMX/SSE)"
+	@echo "    NO_SSE=1      == build without SSE support"
 	@echo "    APIDIR=path   == path to find Mupen64Plus Core headers"
 	@echo "    OPTFLAGS=flag == compiler optimization (default: -O3 -flto)"
 	@echo "    WARNFLAGS=flag == compiler warning levels (default: -Wall)"
