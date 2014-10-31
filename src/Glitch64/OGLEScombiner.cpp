@@ -176,6 +176,13 @@ SHADER_HEADER
 "uniform vec3 vertexOffset;                                     \n" //Moved some calculations from grDrawXXX to shader
 "uniform vec4 textureSizes;                                     \n" 
 "uniform vec3 fogModeEndScale;                                  \n" //0 = Mode, 1 = gl_Fog.end, 2 = gl_Fog.scale
+#ifdef ADRENO_ROTATION_HACK
+"mat4 rotation_matrix = mat4(                                   \n"
+"       0.0, -1.0,  0.0,  0.0,                                  \n"
+"       1.0,  0.0,  0.0,  0.0,                                  \n"
+"       0.0,  0.0,  1.0,  0.0,                                  \n"
+"       0.0,  0.0,  0.0,  1.0);                                 \n"
+#endif
 SHADER_VARYING
 "                                                               \n"
 "void main()                                                    \n"
@@ -187,6 +194,9 @@ SHADER_VARYING
 "  gl_Position.z = aVertex.z / Z_MAX;                                       \n"
 "  gl_Position.w = 1.0;                                                     \n"
 "  gl_Position /= q;                                                        \n"
+#ifdef ADRENO_ROTATION_HACK
+"  gl_Position = rotation_matrix * gl_Position;                             \n"
+#endif
 "  gl_FrontColor = aColor.bgra;                                             \n"
 "                                                                           \n"
 "  gl_TexCoord[0] = vec4(aMultiTexCoord0.xy / q / textureSizes.xy,0,1);     \n"
