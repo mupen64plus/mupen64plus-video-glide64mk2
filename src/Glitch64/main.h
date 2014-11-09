@@ -110,9 +110,16 @@ extern "C" {
 #include <stdio.h>
 //#define printf(...)
 #define GL_GLEXT_PROTOTYPES
+#include <SDL_config.h>
 #ifdef USE_GLES
+#ifndef SDL_VIDEO_OPENGL_ES2
+#error SDL is not build with OpenGL ES2 support. Try USE_GLES=0
+#endif
 #include <SDL_opengles2.h>
 #else
+#ifndef SDL_VIDEO_OPENGL
+#error SDL is not build with OpenGL support. Try USE_GLES=1
+#endif
 #include <SDL_opengl.h>
 #endif
 #endif // _WIN32
