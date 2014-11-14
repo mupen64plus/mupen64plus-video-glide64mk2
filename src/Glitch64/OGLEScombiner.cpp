@@ -251,7 +251,6 @@ void init_combiner()
   int texture[4] = {0, 0, 0, 0};
 
   glActiveTexture(GL_TEXTURE0);
-  glEnable(GL_TEXTURE_2D);
 
   // creating a fake texture
   glBindTexture(GL_TEXTURE_2D, default_texture);
@@ -261,7 +260,6 @@ void init_combiner()
 
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, default_texture);
-  glEnable(GL_TEXTURE_2D);
 
   int texture0_location;
   int texture1_location;
@@ -1728,12 +1726,10 @@ static void setPattern()
     }
   }
   glActiveTexture(GL_TEXTURE2);
-  glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, 33*1024*1024);
   glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glDisable(GL_TEXTURE_2D);
 }
 
 FX_ENTRY void FX_CALL
@@ -1754,19 +1750,16 @@ grStippleMode( GrStippleMode_t mode )
   case GR_STIPPLE_DISABLE:
     dither_enabled = 0;
     glActiveTexture(GL_TEXTURE2);
-    glDisable(GL_TEXTURE_2D);
     break;
   case GR_STIPPLE_PATTERN:
     setPattern();
     dither_enabled = 1;
     glActiveTexture(GL_TEXTURE2);
-    glEnable(GL_TEXTURE_2D);
     break;
   case GR_STIPPLE_ROTATE:
     setPattern();
     dither_enabled = 1;
     glActiveTexture(GL_TEXTURE2);
-    glEnable(GL_TEXTURE_2D);
     break;
   default:
     display_warning("grStippleMode:%x", mode);
