@@ -48,6 +48,10 @@
 #include <IL/il.h>
 #endif
 
+extern int force_polygon_offset;
+extern float polygonOffsetFactor;
+extern float polygonOffsetUnits;
+
 extern void (*renderCallback)(int);
 
 wrapper_config config = {0, 0, 0, 0};
@@ -712,6 +716,14 @@ grSstWinOpen(
 
   //void FindBestDepthBias();
   //FindBestDepthBias();
+  // custom polygon offset for Adreno (TM) 3XX GPUs
+  if(NULL != strstr((const char*)glGetString(GL_VENDOR), "Qualcomm") && NULL != strstr((const char*)glGetString(GL_RENDERER), "Adreno (TM) 3"))
+  {
+    WriteLog(M64MSG_INFO, "Qualcomm Adreno (TM) 3XX detected, forcing polygon offset to factor=-0.2f, units=-0.2f");
+    force_polygon_offset = 1;
+    polygonOffsetFactor = -0.2f;
+    polygonOffsetUnits = -0.2f;
+  }
 
   init_geometry();
   init_textures();
