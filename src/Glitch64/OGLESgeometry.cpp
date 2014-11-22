@@ -31,11 +31,9 @@
 #define Z_MAX (65536.0f)
 #define VERTEX_SIZE sizeof(VERTEX) //Size of vertex struct
 
-#ifdef ANDROID_EDITION
-#include "ae_imports.h"
-static float polygonOffsetFactor;
-static float polygonOffsetUnits;
-#endif
+int force_polygon_offset = 0;
+float polygonOffsetFactor;
+float polygonOffsetUnits;
 
 static int xy_off;
 static int xy_en;
@@ -384,14 +382,17 @@ grDepthBiasLevel( FxI32 level )
   LOG("grDepthBiasLevel(%d)\r\n", level);
   if (level)
   {
-    #ifdef ANDROID_EDITION
-    glPolygonOffset(polygonOffsetFactor, polygonOffsetUnits);
-    #else
-    if(w_buffer_mode)
-      glPolygonOffset(1.0f, -(float)level*zscale/255.0f);
+    if(force_polygon_offset)
+    {
+        glPolygonOffset(polygonOffsetFactor, polygonOffsetUnits);
+    }
     else
-      glPolygonOffset(0, (float)level*biasFactor);
-    #endif
+    {
+        if(w_buffer_mode)
+          glPolygonOffset(1.0f, -(float)level*zscale/255.0f);
+        else
+          glPolygonOffset(0, (float)level*biasFactor);
+    }
     glEnable(GL_POLYGON_OFFSET_FILL);
   }
   else
