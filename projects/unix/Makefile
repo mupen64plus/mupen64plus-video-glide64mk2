@@ -316,9 +316,6 @@ endif
 ifeq ($(NO_SSE), 1)
   CFLAGS += -DNOSSE
 endif
-ifeq ($(ADRENO_ROTATION_HACK), 1)
-  CFLAGS += -DADRENO_ROTATION_HACK
-endif
 
 # set installation options
 ifeq ($(PREFIX),)
@@ -438,7 +435,6 @@ targets:
 	@echo "    POSTFIX=name  == String added to the name of the the build (default: '')"
 	@echo "    HIRES=(1|0)   == Enables/Disables support for hires textures and texture filters (default: 1)"
 	@echo "    TXCDXTN=(1|0) == Enable/Disable external txc_dxtn library (default: 0)"
-	@echo "    ADRENO_ROTATION_HACK=1 == enable adreno rotation hack (rotate screen contents 90°)"
 	@echo "  Install Options:"
 	@echo "    PREFIX=path   == install/uninstall prefix (default: /usr/local)"
 	@echo "    SHAREDIR=path == path to install shared data files (default: PREFIX/share/mupen64plus)"
