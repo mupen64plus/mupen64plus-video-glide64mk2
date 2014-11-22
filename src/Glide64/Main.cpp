@@ -367,6 +367,8 @@ void ReadSettings ()
   settings.scr_res_x = settings.res_x = Config_ReadScreenInt("ScreenWidth");
   settings.scr_res_y = settings.res_y = Config_ReadScreenInt("ScreenHeight");
 
+  settings.rotate = Config_ReadScreenInt("Rotate");
+
   settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 1);
   settings.ssformat = (BOOL)Config_ReadInt("ssformat", "TODO:ssformat", 0);
   //settings.fast_crc = (BOOL)Config_ReadInt ("fast_crc", "Fast CRC", 0);
@@ -377,8 +379,6 @@ void ReadSettings ()
   // settings.advanced_options only good for GUI config
   // settings.texenh_options = only good for GUI config
   //settings.use_hotkeys = ini->Read(_T("hotkeys"), 1l);
-
-  settings.rotate = Config_ReadInt("rotate", "Rotate screen contents: 0=0 degree, 1=90 degree, 2 = 180 degree, 3=270 degree", 0, TRUE, FALSE);
 
   settings.wrpResolution = (BYTE)Config_ReadInt ("wrpResolution", "Wrapper resolution", 0, TRUE, FALSE);
   settings.wrpVRAM = (BYTE)Config_ReadInt ("wrpVRAM", "Wrapper VRAM", 0, TRUE, FALSE);
@@ -484,7 +484,11 @@ void ReadSettings ()
   settings.special_fog = Config_ReadInt("fog", "Fog: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
   settings.special_buff_clear = Config_ReadInt("buff_clear", "Buffer clear on every frame: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
   settings.special_swapmode = Config_ReadInt("swapmode", "Buffer swapping method: -1=Game default, 0=swap buffers when vertical interrupt has occurred, 1=swap buffers when set of conditions is satisfied. Prevents flicker on some games, 2=mix of first two methods", -1, TRUE, FALSE);
+#if CFG_DEFAULTS == jp1
+  settings.special_aspect = Config_ReadInt("aspect", "Aspect ratio: -1=Game default, 0=Force 4:3, 1=Force 16:9, 2=Stretch, 3=Original", 2, TRUE, FALSE);
+#else
   settings.special_aspect = Config_ReadInt("aspect", "Aspect ratio: -1=Game default, 0=Force 4:3, 1=Force 16:9, 2=Stretch, 3=Original", -1, TRUE, FALSE);
+#endif
   settings.special_lodmode = Config_ReadInt("lodmode", "LOD calculation: -1=Game default, 0=disable. 1=fast, 2=precise", -1, TRUE, FALSE);
   settings.special_fb_smart = Config_ReadInt("fb_smart", "Smart framebuffer: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
   settings.special_fb_hires = Config_ReadInt("fb_hires", "Hardware frame buffer emulation: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
