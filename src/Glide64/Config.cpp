@@ -36,20 +36,10 @@ BOOL Config_Open()
     }
     ConfigSetDefaultBool(video_general_section, "Fullscreen", false, "Use fullscreen mode if True, or windowed mode if False");
     ConfigSetDefaultBool(video_general_section, "VerticalSync", true, "If true, prevent frame tearing by waiting for vsync before swapping");
-#if CFG_DEFAULTS == jp1
-    ConfigSetDefaultInt(video_general_section, "ScreenWidth", 540, "Width of output window or fullscreen width");
-    ConfigSetDefaultInt(video_general_section, "ScreenHeight", 960, "Height of output window or fullscreen height");
-#else
     ConfigSetDefaultInt(video_general_section, "ScreenWidth", 640, "Width of output window or fullscreen width");
     ConfigSetDefaultInt(video_general_section, "ScreenHeight", 480, "Height of output window or fullscreen height");
-#endif
     ConfigSetDefaultInt(video_glide64_section, "wrpAntiAliasing", 0, "Enable full-scene anti-aliasing by setting this to a value greater than 1");
-
-#if CFG_DEFAULTS == jp1
-    ConfigSetDefaultInt(video_general_section, "Rotate", 3, "Rotate screen contents: 0=0 degree, 1=90 degree, 2 = 180 degree, 3=270 degree");
-#else
     ConfigSetDefaultInt(video_general_section, "Rotate", 0, "Rotate screen contents: 0=0 degree, 1=90 degree, 2 = 180 degree, 3=270 degree");
-#endif
 
     return TRUE;
 }
