@@ -292,10 +292,17 @@ grDepthBiasLevel( FxI32 level )
   LOG("grDepthBiasLevel(%d)\r\n", level);
   if (level)
   {
-    if(w_buffer_mode)
-      glPolygonOffset(1.0f, -(float)level*zscale/255.0f);
+    if(settings.force_polygon_offset)
+    {
+      glPolygonOffset(settings.polygon_offset_factor, settings.polygon_offset_units);
+    }
     else
-      glPolygonOffset(0, (float)level*biasFactor);
+    {
+      if(w_buffer_mode)
+        glPolygonOffset(1.0f, -(float)level*zscale/255.0f);
+      else
+        glPolygonOffset(0, (float)level*biasFactor);
+    }
     glEnable(GL_POLYGON_OFFSET_FILL);
   }
   else
