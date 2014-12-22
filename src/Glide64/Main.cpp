@@ -162,6 +162,11 @@ float      pal_percent = 0.0f;
 // ref rate
 // 60=0x0, 70=0x1, 72=0x2, 75=0x3, 80=0x4, 90=0x5, 100=0x6, 85=0x7, 120=0x8, none=0xff
 
+#ifdef USE_FRAMESKIPPER
+#include "FrameSkipper.h"
+FrameSkipper frameSkipper;
+#endif
+
 unsigned long BMASK = 0x7FFFFF;
 // Reality display processor structure
 RDP rdp;
@@ -372,6 +377,15 @@ void ReadSettings ()
   settings.force_polygon_offset = (BOOL)Config_ReadInt("force_polygon_offset", "If true, use polygon offset values specified below", 0, TRUE, TRUE);
   settings.polygon_offset_factor = Config_ReadFloat("polygon_offset_factor", "Specifies a scale factor that is used to create a variable depth offset for each polygon", 0.0f);
   settings.polygon_offset_units = Config_ReadFloat("polygon_offset_units", "Is multiplied by an implementation-specific value to create a constant depth offset", 0.0f);
+
+#ifdef USE_FRAMESKIPPER
+  settings.autoframeskip = (BOOL)Config_ReadInt("autoframeskip", "If true, skip up to maxframeskip frames to maintain clock schedule; if false, skip exactly maxframeskip frames", 0, TRUE, TRUE);
+  settings.maxframeskip = Config_ReadInt("maxframeskip", "If autoframeskip is true, skip up to this many frames to maintain clock schedule; if autoframeskip is false, skip exactly this many frames", 0, TRUE, FALSE);
+  if( settings.autoframeskip )
+    frameSkipper.setSkips( FrameSkipper::AUTO, settings.maxframeskip );
+  else
+    frameSkipper.setSkips( FrameSkipper::MANUAL, settings.maxframeskip );
+#endif
 
   settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 1);
   settings.ssformat = (BOOL)Config_ReadInt("ssformat", "TODO:ssformat", 0);
@@ -1889,6 +1903,10 @@ EXPORT int CALL RomOpen (void)
   if (code == 0x5000) region = 1; // Europe (PAL)
   if (code == 0x5500) region = 0; // Australia (NTSC)
 
+#ifdef USE_FRAMESKIPPER
+  frameSkipper.setTargetFPS(region == 1 ? 50 : 60);
+#endif
+
   char name[21] = "DEFAULT";
   ReadSpecialSettings (name);
 
@@ -2029,6 +2047,9 @@ output:   none
 wxUint32 update_screen_count = 0;
 EXPORT void CALL UpdateScreen (void)
 {
+#ifdef USE_FRAMESKIPPER
+  frameSkipper.update();
+#endif
 #ifdef LOG_KEY
   if (CheckKeyPressed(G64_VK_SPACE, 0x0001))
   {
