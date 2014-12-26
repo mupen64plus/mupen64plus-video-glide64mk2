@@ -42,6 +42,10 @@
 #include <3dfx.h>
 #include <glidesys.h>
 #include <sst1vid.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 
 #ifdef __cplusplus
 extern "C" {
