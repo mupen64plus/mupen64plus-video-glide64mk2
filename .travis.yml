@@ -1,7 +1,7 @@
 language: cpp
 compiler:
   - gcc
-#  - clang
+  - clang
 before_install:
   - sudo add-apt-repository --yes ppa:zoogie/sdl2-snapshots
   - sudo apt-get update -qq
