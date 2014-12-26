@@ -680,7 +680,7 @@ TxFilter::dmptx(uint8 *src, int width, int height, int rowStridePixel, uint16 gf
       tmpbuf.append(L"/" + _ident + L"#" + texid + L"_all.png");
     }
 
-#ifdef WIN32
+#ifdef _WIN32
     if ((fp = _wfopen(tmpbuf.c_str(), L"wb")) != NULL) {
 #else
     char cbuf[MAX_PATH];
