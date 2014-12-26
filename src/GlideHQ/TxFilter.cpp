@@ -30,7 +30,7 @@
 #include "TxDbg.h"
 #ifndef NO_FILTER_THREAD
 #include <SDL.h>
-#include <SDL_Thread.h>
+#include <SDL_thread.h>
 #endif
 #if defined(__MINGW32__)
 #define swprintf _snwprintf

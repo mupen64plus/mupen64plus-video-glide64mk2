@@ -27,7 +27,7 @@
 
 #ifndef NO_FILTER_THREAD
 #include <SDL.h>
-#include <SDL_Thread.h>
+#include <SDL_thread.h>
 #endif
 
 #include "TxQuantize.h"
