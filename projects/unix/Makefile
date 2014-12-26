@@ -167,11 +167,12 @@ ifeq ($(OS), OSX)
 
   ifeq ($(CPU), X86)
     LDFLAGS += -bundle -L/opt/local/lib
+    CXXFLAGS += -stdlib=libc++
     LDLIBS += -ldl
     ifeq ($(ARCH_DETECTED), 64BITS)
-      CFLAGS += -pipe -I /opt/local/include -arch x86_64 -mmacosx-version-min=10.5 -isysroot $(OSX_SDK_PATH)
+      CFLAGS += -pipe -I /opt/local/include -arch x86_64 -mmacosx-version-min=10.7 -isysroot $(OSX_SDK_PATH)
     else
-      CFLAGS += -pipe -I /opt/local/include -mmmx -msse -fomit-frame-pointer -arch i686 -mmacosx-version-min=10.5 -isysroot $(OSX_SDK_PATH)
+      CFLAGS += -pipe -I /opt/local/include -mmmx -msse -fomit-frame-pointer -arch i686 -mmacosx-version-min=10.7 -isysroot $(OSX_SDK_PATH)
     endif
   endif
 endif
