@@ -125,7 +125,7 @@ endif
 OPTFLAGS ?= -O2 -flto
 WARNFLAGS ?= -Wall
 CFLAGS += $(OPTFLAGS) $(WARNFLAGS) -ffast-math -fno-strict-aliasing -fvisibility=hidden -I../../src -I../../src/Glitch64/inc -DGCC
-CXXFLAGS += -fvisibility-inlines-hidden -std=c++11
+CXXFLAGS += -fvisibility-inlines-hidden -std=gnu++0x
 LDFLAGS += $(SHARED)
 BOOST_SUFFIX ?=
 
