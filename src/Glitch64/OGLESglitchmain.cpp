@@ -39,7 +39,7 @@
 #include "main.h"
 #include "m64p.h"
 
-#include <SDL_opengles.h>
+#include <SDL_opengles2.h>
 //#include <GL/glext.h>
 
 #define OPENGL_CHECK_ERRORS { const GLenum errcode = glGetError(); if (errcode != GL_NO_ERROR) LOG("OpenGL Error code %i in '%s' line %i\n", errcode, __FILE__, __LINE__-1); }
