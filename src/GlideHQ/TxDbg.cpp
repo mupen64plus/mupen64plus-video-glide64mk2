@@ -66,7 +66,11 @@ TxDbg::output(const int level, const wchar_t *format, ...)
 
   va_start(args, format);
 #if defined(_GLIBCXX_HAVE_BROKEN_VSWPRINTF) || defined(__clang__)
+  #if defined(_GLIBCXX_HAVE_BROKEN_VSWPRINTF)
+  swprintf(newformat, L"%d:\t", level);
+  #else
   swprintf(newformat, 4095, L"%d:\t", level);
+  #endif
   wcscat(newformat, format);
   vfwprintf(_dbgfile, newformat, args);
 #else
