@@ -220,6 +220,11 @@ typedef struct {
   float polygon_offset_factor;
   float polygon_offset_units;
 
+#ifdef USE_FRAMESKIPPER
+  int autoframeskip;
+  int maxframeskip;
+#endif
+
   int filtering;
   int fog;
   int buff_clear;
