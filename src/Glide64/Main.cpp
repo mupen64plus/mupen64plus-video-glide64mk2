@@ -1945,7 +1945,7 @@ EXPORT int CALL RomOpen (void)
   }
 
 #ifdef USE_FRAMESKIPPER
-  frameSkipper.setTargetFPS(region == 1 ? 50 : 60);
+  frameSkipper.setTargetFPS(region == OS_TV_TYPE_PAL ? 50 : 60);
 #endif
 
   char name[21] = "DEFAULT";
