@@ -24,7 +24,7 @@
 #include <m64p_types.h>
 
 #define LOG(...) WriteLog(M64MSG_VERBOSE, __VA_ARGS__)
-#define LOGINFO(...) WriteLog(M64MSG_VERBOSE, __VA_ARGS__)
+#define LOGINFO(...) WriteLog(M64MSG_INFO, __VA_ARGS__)
 #ifdef __cplusplus
 extern "C" {
 #endif
