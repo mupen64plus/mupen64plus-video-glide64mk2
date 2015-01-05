@@ -1945,7 +1945,7 @@ EXPORT int CALL RomOpen (void)
   }
 
 #ifdef USE_FRAMESKIPPER
-  frameSkipper.setTargetFPS(region == 1 ? 50 : 60);
+  frameSkipper.setTargetFPS(region == OS_TV_TYPE_PAL ? 50 : 60);
 #endif
 
   char name[21] = "DEFAULT";
@@ -2222,8 +2222,7 @@ void newSwapBuffers()
     {
       if (settings.show_fps & 4)
       {
-        const int is_NTSC = (unsigned)(region) % 2; /* neither PAL nor MPAL */
-        const float percentage = vi / (is_NTSC ? .6f : .5f);
+        const float percentage = vi / (region == OS_TV_TYPE_PAL ? .5f : .6f); /* PAL is 50Hz; NTSC & MPAL are 60Hz */
 
         output(0, y, 0, "%d%% ", (int)percentage);
         y -= 16;
