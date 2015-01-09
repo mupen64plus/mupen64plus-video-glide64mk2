@@ -302,7 +302,7 @@ LogManager logManager;
 #else // LOGGING
 #define OPEN_LOG()
 #define CLOSE_LOG()
-//#define LOG
+#define LOG
 #endif // LOGGING
 
 FX_ENTRY void FX_CALL
