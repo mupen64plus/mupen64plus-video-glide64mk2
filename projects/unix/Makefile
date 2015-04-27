@@ -122,7 +122,6 @@ ifeq ("$(CPU)","NONE")
 endif
 
 # base CFLAGS, LDLIBS, and LDFLAGS
-OPTFLAGS ?= -O3
 WARNFLAGS ?= -Wall -Wno-unused-function
 CFLAGS += $(OPTFLAGS) $(WARNFLAGS) -ffast-math -fno-strict-aliasing -fvisibility=hidden -I../../src -I../../src/Glitch64/inc -DGCC
 CXXFLAGS += -fvisibility-inlines-hidden -std=gnu++0x
@@ -156,12 +155,13 @@ endif
 
 # set special flags per-system
 ifeq ($(OS), LINUX)
-  OPTFLAGS += -flto=jobserver
+  OPTFLAGS ?= -O3 -flto=jobserver
   # only export api symbols
   LDFLAGS += -Wl,-version-script,$(SRCDIR)/video_api_export.ver
   LDLIBS += -ldl
 endif
 ifeq ($(OS), OSX)
+  OPTFLAGS ?= -O3
   #xcode-select has been around since XCode 3.0, i.e. OS X 10.5
   OSX_SDK_ROOT = $(shell xcode-select -print-path)/Platforms/MacOSX.platform/Developer/SDKs
   OSX_SDK_PATH = $(OSX_SDK_ROOT)/$(shell ls $(OSX_SDK_ROOT) | tail -1)
@@ -178,6 +178,7 @@ ifeq ($(OS), OSX)
   endif
 endif
 ifeq ($(OS), FREEBSD)
+  OPTFLAGS ?= -O3
   LDLIBS += -lc
 endif
 
