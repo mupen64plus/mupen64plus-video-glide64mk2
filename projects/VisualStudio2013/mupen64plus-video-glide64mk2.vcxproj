@@ -194,7 +194,7 @@
       <PreprocessorDefinitions>_VARIADIC_MAX=10;_CRT_SECURE_NO_WARNINGS;__MSC__;WIN32;__VISUALC__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Async</ExceptionHandling>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <PrecompiledHeaderOutputFile>.\Release/n64Glide.pch</PrecompiledHeaderOutputFile>
@@ -252,7 +252,7 @@
       <PreprocessorDefinitions>_VARIADIC_MAX=10;_CRT_SECURE_NO_WARNINGS;__MSC__;WIN32;__VISUALC__;NO_ASM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Async</ExceptionHandling>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <PrecompiledHeaderOutputFile>.\Release/n64Glide.pch</PrecompiledHeaderOutputFile>
