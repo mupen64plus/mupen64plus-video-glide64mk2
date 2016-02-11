@@ -25,9 +25,6 @@
 #pragma warning(disable: 4786)
 #endif
 
-/* dump cache to disk (0:disable, 1:enable) */
-#define DUMP_CACHE 1
-
 #include "TxTexCache.h"
 #include "TxDbg.h"
 #include <zlib.h>
@@ -36,12 +33,12 @@
 
 TxTexCache::~TxTexCache()
 {
-#if DUMP_CACHE
+#ifdef DUMP_CACHE
   if (_options & DUMP_TEXCACHE) {
     /* dump cache to disk */
     std::wstring filename = _ident + L"_MEMORYCACHE.dat";
-    boost::filesystem::wpath cachepath(_path);
-    cachepath /= boost::filesystem::wpath(L"cache");
+    boost::filesystem::wpath cachepath(_cachepath);
+    cachepath /= boost::filesystem::wpath(L"glidehq");
     int config = _options & (FILTER_MASK|ENHANCEMENT_MASK|COMPRESS_TEX|COMPRESSION_MASK|FORCE16BPP_TEX|GZ_TEXCACHE);
 
     TxCache::save(cachepath.wstring().c_str(), filename.c_str(), config);
@@ -49,20 +46,20 @@ TxTexCache::~TxTexCache()
 #endif
 }
 
-TxTexCache::TxTexCache(int options, int cachesize, const wchar_t *path, const wchar_t *ident,
-                       dispInfoFuncExt callback
-                       ) : TxCache((options & ~GZ_HIRESTEXCACHE), cachesize, path, ident, callback)
+TxTexCache::TxTexCache(int options, int cachesize, const wchar_t *datapath, const wchar_t *cachepath,
+                       const wchar_t *ident, dispInfoFuncExt callback
+                       ) : TxCache((options & ~GZ_HIRESTEXCACHE), cachesize, datapath, cachepath, ident, callback)
 {
   /* assert local options */
-  if (_path.empty() || _ident.empty() || !_cacheSize)
+  if (_cachepath.empty() || _ident.empty() || !_cacheSize)
     _options &= ~DUMP_TEXCACHE;
 
-#if DUMP_CACHE
+#ifdef DUMP_CACHE
   if (_options & DUMP_TEXCACHE) {
     /* find it on disk */
     std::wstring filename = _ident + L"_MEMORYCACHE.dat";
-    boost::filesystem::wpath cachepath(_path);
-    cachepath /= boost::filesystem::wpath(L"cache");
+    boost::filesystem::wpath cachepath(_cachepath);
+    cachepath /= boost::filesystem::wpath(L"glidehq");
     int config = _options & (FILTER_MASK|ENHANCEMENT_MASK|COMPRESS_TEX|COMPRESSION_MASK|FORCE16BPP_TEX|GZ_TEXCACHE);
 
     TxCache::load(cachepath.wstring().c_str(), filename.c_str(), config);

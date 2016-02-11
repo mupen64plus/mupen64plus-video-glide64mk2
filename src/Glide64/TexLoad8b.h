@@ -38,11 +38,6 @@
 //****************************************************************
 #include <stdint.h>
 
-extern "C" void asmLoad8bCI(uint8_t *src, uint8_t *dst, int wid_64, int height, int line, int ext, uint16_t *pal);
-extern "C" void asmLoad8bIA8(uint8_t *src, uint8_t *dst, int wid_64, int height, int line, int ext, uint16_t *pal);
-extern "C" void asmLoad8bIA4(uint8_t *src, uint8_t *dst, int wid_64, int height, int line, int ext);
-extern "C" void asmLoad8bI(uint8_t *src, uint8_t *dst, int wid_64, int height, int line, int ext);
-
 static inline void load8bCI(uint8_t *src, uint8_t *dst, int wid_64, int height, int line, int ext, uint16_t *pal)
 {
   uint8_t *v7;
@@ -279,7 +274,7 @@ static inline void load8bIA4(uint8_t *src, uint8_t *dst, int wid_64, int height,
       v10 = *v6;
       v11 = (*v6 >> 4) & 0xF0F0F0F;
       v12 = v6 + 1;
-      *v7 = 16 * v10 & 0xF0F0F0F0 | v11;
+      *v7 = (16 * v10 & 0xF0F0F0F0) | v11;
       v13 = v7 + 1;
       v14 = (*v12 >> 4) & 0xF0F0F0F;
       v15 = 16 * *v12 & 0xF0F0F0F0;
@@ -297,11 +292,11 @@ static inline void load8bIA4(uint8_t *src, uint8_t *dst, int wid_64, int height,
     v18 = wid_64;
     do
     {
-      *v17 = 16 * v16[1] & 0xF0F0F0F0 | (v16[1] >> 4) & 0xF0F0F0F;
+      *v17 = (16 * v16[1] & 0xF0F0F0F0) | ((v16[1] >> 4) & 0xF0F0F0F);
       v19 = v17 + 1;
       v20 = *v16;
       v16 += 2;
-      *v19 = 16 * v20 & 0xF0F0F0F0 | (v20 >> 4) & 0xF0F0F0F;
+      *v19 = (16 * v20 & 0xF0F0F0F0) | ((v20 >> 4) & 0xF0F0F0F);
       v17 = v19 + 1;
       --v18;
     }
@@ -390,27 +385,15 @@ wxUint32 Load8bCI (wxUIntPtr dst, wxUIntPtr src, int wid_64, int height, int lin
     case 0: //palette is not used
       //in tlut DISABLE mode load CI texture as plain intensity texture instead of palette dereference.
       //Thanks to angrylion for the advice
-#ifdef OLDASM_asmLoad8bI
-      asmLoad8bI ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext);
-#else
       load8bI ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext);
-#endif
       return /*(0 << 16) | */GR_TEXFMT_ALPHA_8;
     case 2: //color palette
       ext <<= 1;
-#ifdef OLDASM_asmLoad8bCI
-      asmLoad8bCI ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext, pal);
-#else
       load8bCI ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext, pal);
-#endif
       return (1 << 16) | GR_TEXFMT_ARGB_1555;
     default: //IA palette
       ext <<= 1;
-#ifdef OLDASM_asmLoad8bIA8
-      asmLoad8bIA8 ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext, pal);
-#else
       load8bIA8 ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext, pal);
-#endif
       return (1 << 16) | GR_TEXFMT_ALPHA_INTENSITY_88;
   }
 }
@@ -428,11 +411,7 @@ wxUint32 Load8bIA (wxUIntPtr dst, wxUIntPtr src, int wid_64, int height, int lin
   if (wid_64 < 1) wid_64 = 1;
   if (height < 1) height = 1;
   int ext = (real_width - (wid_64 << 3));
-#ifdef OLDASM_asmLoad8bIA4
-  asmLoad8bIA4 ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext);
-#else
   load8bIA4 ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext);
-#endif
   return /*(0 << 16) | */GR_TEXFMT_ALPHA_INTENSITY_44;
 } 
 
@@ -449,11 +428,7 @@ wxUint32 Load8bI (wxUIntPtr dst, wxUIntPtr src, int wid_64, int height, int line
   if (wid_64 < 1) wid_64 = 1;
   if (height < 1) height = 1;
   int ext = (real_width - (wid_64 << 3));
-#ifdef OLDASM_asmLoad8bI
-  asmLoad8bI ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext);
-#else
   load8bI ((uint8_t *)src, (uint8_t *)dst, wid_64, height, line, ext);
-#endif
   return /*(0 << 16) | */GR_TEXFMT_ALPHA_8;
 }
 

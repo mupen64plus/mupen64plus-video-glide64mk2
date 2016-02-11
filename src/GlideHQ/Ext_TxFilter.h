@@ -24,7 +24,7 @@
 #ifndef __EXT_TXFILTER_H__
 #define __EXT_TXFILTER_H__
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #define TXHMODULE HMODULE
 #define DLOPEN(a) LoadLibraryW(a)
@@ -128,10 +128,11 @@ typedef unsigned char boolean;
 #endif /* GLIDE3 */
 
 struct GHQTexInfo {
+
   unsigned char *data;
+
   int width;
   int height;
-  unsigned short format;
 
   int smallLodLog2;
   int largeLodLog2;
@@ -140,6 +141,8 @@ struct GHQTexInfo {
   int tiles;
   int untiled_width;
   int untiled_height;
+
+  unsigned short format;
 
   unsigned char is_hires_tex;
 };
@@ -168,7 +171,8 @@ boolean ext_ghq_init(int maxwidth, /* maximum texture width supported by hardwar
                      int maxbpp,   /* maximum texture bpp supported by hardware */
                      int options,  /* options */
                      int cachesize,/* cache textures to system memory */
-                     wchar_t *path,   /* plugin directory. must be smaller than MAX_PATH */
+                     wchar_t *datapath,   /* user data directory. must be smaller than MAX_PATH */
+                     wchar_t *cachepath,   /* user cache directory. must be smaller than MAX_PATH */
                      wchar_t *ident,  /* name of ROM. must be no longer than 64 in character. */
                      dispInfoFuncExt callback /* callback function to display info */
                      );

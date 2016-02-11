@@ -23,8 +23,14 @@
 
 #include <m64p_types.h>
 
-#define LOG(...) WriteLog(M64MSG_VERBOSE, __VA_ARGS__)
+#define LOGINFO(...) WriteLog(M64MSG_INFO, __VA_ARGS__)
+#ifdef __cplusplus
+extern "C" {
+#endif
 void WriteLog(m64p_msg_level level, const char *msg, ...);
+#ifdef __cplusplus
+}
+#endif
 
 
 #ifndef _WIN32
@@ -96,13 +102,26 @@ extern "C" {
     extern PFNGLUNIFORM1IARBPROC glUniform1iARB;
     extern PFNGLUNIFORM4FARBPROC glUniform4fARB;
     extern PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
+    extern PFNGLGETHANDLEARBPROC glGetHandleARB;
     typedef const char * (WINAPI * PFNWGLGETEXTENSIONSSTRINGARBPROC) (HDC hdc);
 }
 #else
 #include <stdio.h>
 //#define printf(...)
 #define GL_GLEXT_PROTOTYPES
+#include <SDL_config.h>
+#ifdef USE_GLES
+#ifndef SDL_VIDEO_OPENGL_ES2
+#error SDL is not build with OpenGL ES2 support. Try USE_GLES=0
+#endif
+#include <SDL_opengles2.h>
+#include "OGLESwrappers.h"
+#else
+#ifndef SDL_VIDEO_OPENGL
+#error SDL is not build with OpenGL support. Try USE_GLES=1
+#endif
 #include <SDL_opengl.h>
+#endif
 #endif // _WIN32
 #include "glide.h"
 
@@ -130,6 +149,7 @@ extern PFNGLCREATEPROGRAMOBJECTARBPROC glCreateProgramObjectARB;
 extern PFNGLATTACHOBJECTARBPROC glAttachObjectARB;
 extern PFNGLLINKPROGRAMARBPROC glLinkProgramARB;
 extern PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
+extern PFNGLGETHANDLEARBPROC glGetHandleARB;
 extern PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
 extern PFNGLUNIFORM1IARBPROC glUniform1iARB;
 extern PFNGLUNIFORM4IARBPROC glUniform4iARB;
@@ -140,6 +160,17 @@ extern PFNGLGETINFOLOGARBPROC glGetInfoLogARB;
 extern PFNGLGETOBJECTPARAMETERIVARBPROC glGetObjectParameterivARB;
 extern PFNGLSECONDARYCOLOR3FPROC glSecondaryColor3f;
 #endif
+void check_compile(GLuint shader);
+void check_link(GLuint program);
+void vbo_enable();
+void vbo_disable();
+
+//Vertex Attribute Locations
+#define POSITION_ATTR 0
+#define COLOUR_ATTR 1
+#define TEXCOORD_0_ATTR 2
+#define TEXCOORD_1_ATTR 3
+#define FOG_ATTR 4
 
 extern int w_buffer_mode;
 extern int nbTextureUnits;
@@ -177,6 +208,7 @@ void free_combiners();
 void compile_shader();
 void set_lambda();
 void set_copy_shader();
+void disable_textureSizes();
 
 // config functions
 
@@ -268,6 +300,37 @@ FX_ENTRY void FX_CALL
 grConstantColorValueExt(GrChipID_t    tmu,
                         GrColor_t     value);
 
+#ifdef USE_GLES
+#define CHECK_FRAMEBUFFER_STATUS() \
+{\
+ GLenum status; \
+ status = glCheckFramebufferStatus(GL_FRAMEBUFFER); \
+ /*display_warning("%x\n", status);*/\
+ switch(status) { \
+ case GL_FRAMEBUFFER_COMPLETE: \
+   /*display_warning("framebuffer complete!\n");*/\
+   break; \
+ case GL_FRAMEBUFFER_UNSUPPORTED: \
+   display_warning("framebuffer GL_FRAMEBUFFER_UNSUPPORTED_EXT\n");\
+    /* you gotta choose different formats */ \
+   /*assert(0);*/ \
+   break; \
+ case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: \
+   display_warning("framebuffer INCOMPLETE_ATTACHMENT\n");\
+   break; \
+ case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: \
+   display_warning("framebuffer FRAMEBUFFER_MISSING_ATTACHMENT\n");\
+   break; \
+ case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS: \
+   display_warning("framebuffer FRAMEBUFFER_DIMENSIONS\n");\
+   break; \
+ default: \
+   break; \
+   /* programming error; will fail on all hardware */ \
+   /*assert(0);*/ \
+ }\
+}
+#else
 #define CHECK_FRAMEBUFFER_STATUS() \
 {\
  GLenum status; \
@@ -312,6 +375,7 @@ grConstantColorValueExt(GrChipID_t    tmu,
    /*assert(0);*/ \
  }\
 }
+#endif
 
 #ifdef VPDEBUG
 #define LOGGING
@@ -320,11 +384,11 @@ grConstantColorValueExt(GrChipID_t    tmu,
 #ifdef LOGGING
 void OPEN_LOG();
 void CLOSE_LOG();
-//void LOG(const char *text, ...);
+void LOG(const char *text, ...);
 #else // LOGGING
 #define OPEN_LOG()
 #define CLOSE_LOG()
-//#define LOG
+#define LOG(...)
 #endif // LOGGING
 
 #endif

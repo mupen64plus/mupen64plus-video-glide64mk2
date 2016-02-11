@@ -1,6 +1,6 @@
 /******************************************************************************
  * Glide64 - Glide video plugin for Nintendo 64 emulators.
- * http://bitbucket.org/wahrhaft/mupen64plus-video-glide64/
+ * http://bitbucket.org/richard42/mupen64plus-video-glide64mk2/
  *
  * Copyright (C) 2010 Jon Ring
  *
@@ -22,18 +22,27 @@
 #ifndef M64P_H
 #define M64P_H
 
-#ifndef OLDAPI
-
 #include "m64p_types.h"
 #include "m64p_plugin.h"
+#include "m64p_common.h"
 #include "m64p_config.h"
 #include "m64p_vidext.h"
 #include "winlnxdefs.h"
 #include <stdio.h>
 
-#define VIDEO_PLUGIN_API_VERSION	0x020100
+#define PLUGIN_NAME                 "Glide64mk2 Video Plugin"
+#define PLUGIN_VERSION              0x020500
+#define VIDEO_PLUGIN_API_VERSION	0x020200
+#define CONFIG_API_VERSION          0x020000
+#define VIDEXT_API_VERSION          0x030000
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void WriteLog(m64p_msg_level level, const char *msg, ...);
+#ifdef __cplusplus
+}
+#endif
 
 //The Glide API originally used an integer to pick an enumerated resolution.
 //To accomodate arbitrary resolutions, pack it into a 32-bit struct
@@ -76,17 +85,9 @@ extern ptr_VidExt_ListFullscreenModes   CoreVideo_ListFullscreenModes;
 extern ptr_VidExt_SetVideoMode          CoreVideo_SetVideoMode;
 extern ptr_VidExt_SetCaption            CoreVideo_SetCaption;
 extern ptr_VidExt_ToggleFullScreen      CoreVideo_ToggleFullScreen;
+extern ptr_VidExt_ResizeWindow          CoreVideo_ResizeWindow;
 extern ptr_VidExt_GL_GetProcAddress     CoreVideo_GL_GetProcAddress;
 extern ptr_VidExt_GL_SetAttribute       CoreVideo_GL_SetAttribute;
 extern ptr_VidExt_GL_SwapBuffers        CoreVideo_GL_SwapBuffers;
-
-#else
-
-#include <wx/wx.h>
-#include <wx/fileconf.h>
-#include <wx/wfstream.h>
-
-
-#endif
 
 #endif

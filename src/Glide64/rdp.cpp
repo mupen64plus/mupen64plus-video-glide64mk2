@@ -38,7 +38,7 @@
 //****************************************************************
 
 #include <math.h>
-#include "Gfx #1.3.h"
+#include "Gfx_1.3.h"
 #include "m64p.h"
 #include "Ini.h"
 #include "Config.h"
@@ -51,9 +51,9 @@
 #include "FBtoScreen.h"
 #include "CRC.h"
 
-#if defined(OLDASM_asmLoadBlock) || defined(OLDASM_asmLoadTile)
-extern "C" void SwapBlock32 ();
-//extern "C" void SwapBlock64 ();
+#ifdef USE_FRAMESKIPPER
+#include "FrameSkipper.h"
+extern FrameSkipper frameSkipper;
 #endif
 
 /*
@@ -365,60 +365,8 @@ void microcheck ()
   }
 }
 
-#ifdef __WINDOWS__
-static void GetClientSize(int * width, int * height)
-{
-#ifdef __WINDOWS__
-  RECT win_rect;
-  GetClientRect (gfx.hWnd, &win_rect);
-  *width = win_rect.right;
-  *height = win_rect.bottom;
-#else
-  GFXWindow->GetClientSize(width, height);
-#endif
-}
-#endif
-
 void drawNoFullscreenMessage()
 {
-//need to find, how to do it on non-windows OS
-//the code below will compile on any OS
-//but it works only on windows, because
-//I don't know, how to initialize GFXWindow on other OS
-#ifdef __WINDOWS__
-  LOG ("drawNoFullscreenMessage ()\n");
-  if (rdp.window_changed)
-  {
-    rdp.window_changed = FALSE;
-    int width, height;
-    GetClientSize(&width, &height);
-
-    wxClientDC dc(GFXWindow);
-    dc.SetBrush(*wxMEDIUM_GREY_BRUSH);
-    dc.SetTextForeground(*wxWHITE);
-    dc.SetBackgroundMode(wxTRANSPARENT);
-    dc.DrawRectangle(0, 0, width, height);
-
-    wxCoord w, h;
-    wxString text = wxT("Glide64");
-    dc.GetTextExtent(text, &w, &h);
-    wxCoord x = (width - w)/2;
-    wxCoord y = height/2 - h*4;
-    dc.DrawText(text, x, y);
-
-    text = wxT("Gfx cannot be drawn in windowed mode");
-    dc.GetTextExtent(text, &w, &h);
-    x = (width - w)/2;
-    y = height/2 - h;
-    dc.DrawText(text, x, y);
-
-    text = wxT("Press Alt+Enter to switch to fullscreen");
-    dc.GetTextExtent(text, &w, &h);
-    x = (width - w)/2;
-    y = (height - h)/2 + h*2;
-    dc.DrawText(text, x, y);
-  }
-#endif
 }
 
 static wxUint32 d_ul_x, d_ul_y, d_lr_x, d_lr_y;
@@ -444,6 +392,26 @@ static void DrawPartFrameBufferToScreen()
   ((wxUint32)((float)((color&0xF800) >> 11) / 31.0f * 255.0f) << 24) | \
   ((wxUint32)((float)((color&0x07C0) >> 6) / 31.0f * 255.0f) << 16) | \
   ((wxUint32)((float)((color&0x003E) >> 1) / 31.0f * 255.0f) << 8)
+
+static void copyWhiteToRDRAM()
+{
+    if(rdp.ci_width == 0)
+        return;
+
+    wxUint16 *ptr_dst = (wxUint16*)(gfx.RDRAM + rdp.cimg);
+    wxUint32 *ptr_dst32 = (wxUint32*)(gfx.RDRAM + rdp.cimg);
+
+    for(wxUint32 y = 0; y < rdp.ci_height; y++)
+    {
+        for(wxUint32 x = 0; x < rdp.ci_width; x++)
+        {
+            if(rdp.ci_size == 2)
+                ptr_dst[(x + y * rdp.ci_width) ^ 1] = 0xFFFF;
+            else
+                ptr_dst32[x + y * rdp.ci_width] = 0xFFFFFFFF;
+        }
+    }
+}
 
 static void CopyFrameBuffer (GrBuffer_t buffer = GR_BUFFER_BACKBUFFER)
 {
@@ -541,7 +509,7 @@ static void CopyFrameBuffer (GrBuffer_t buffer = GR_BUFFER_BACKBUFFER)
         wxUint32 stride = info.strideInBytes>>1;
 
         int read_alpha = settings.frame_buffer & fb_read_alpha;
-        if ((settings.hacks&hack_PMario) && rdp.frame_buffers[rdp.ci_count-1].status != ci_aux)
+        if ((settings.hacks&hack_PMario) && rdp.ci_count > 0 && rdp.frame_buffers[rdp.ci_count-1].status != ci_aux)
           read_alpha = FALSE;
         int x_start = 0, y_start = 0, x_end = width, y_end = height;
         if (settings.hacks&hack_BAR)
@@ -634,7 +602,11 @@ extern "C" {
 EXPORT void CALL ProcessDList(void)
 {
   SoftLocker lock(mutexProcessDList);
+#ifdef USE_FRAMESKIPPER
+  if (frameSkipper.willSkipNext() || !lock.IsOk()) //mutex is busy
+#else
   if (!lock.IsOk()) //mutex is busy
+#endif
   {
     if (!fullscreen)
       drawNoFullscreenMessage();
@@ -766,6 +738,10 @@ EXPORT void CALL ProcessDList(void)
   FRDP("--- NEW DLIST --- crc: %08lx, ucode: %d, fbuf: %08lx, fbuf_width: %d, dlist start: %08lx, dlist_length: %d, x_scale: %f, y_scale: %f\n", uc_crc, settings.ucode, *gfx.VI_ORIGIN_REG, *gfx.VI_WIDTH_REG, dlist_start, dlist_length, (*gfx.VI_X_SCALE_REG & 0xFFF)/1024.0f, (*gfx.VI_Y_SCALE_REG & 0xFFF)/1024.0f);
   FRDP_E("--- NEW DLIST --- crc: %08lx, ucode: %d, fbuf: %08lx\n", uc_crc, settings.ucode, *gfx.VI_ORIGIN_REG);
 
+  // Do nothing if dlist is empty
+  if (dlist_start == 0)
+      return;
+
   if (cpu_fb_write == TRUE)
     DrawPartFrameBufferToScreen();
   if ((settings.hacks&hack_Tonic) && dlist_length < 16)
@@ -866,8 +842,12 @@ EXPORT void CALL ProcessDList(void)
     rdp.scale_x = rdp.scale_x_bak;
     rdp.scale_y = rdp.scale_y_bak;
   }
-  if (settings.frame_buffer & fb_ref)
+
+  if(settings.hacks & hack_OoT)
+    copyWhiteToRDRAM(); //Subscreen delay fix
+  else if (settings.frame_buffer & fb_ref)
     CopyFrameBuffer ();
+
   if (rdp.cur_image)
     CloseTextureBuffer(rdp.read_whole_frame && ((settings.hacks&hack_PMario) || rdp.swap_ci_index >= 0));
 
@@ -1046,7 +1026,7 @@ static void rdp_texrect()
     return;
   }
 
-  if ((settings.ucode == ucode_PerfectDark) && (rdp.frame_buffers[rdp.ci_count-1].status == ci_zcopy))
+  if ((settings.ucode == ucode_PerfectDark) && rdp.ci_count > 0 && (rdp.frame_buffers[rdp.ci_count-1].status == ci_zcopy))
   {
     pd_zcopy ();
     LRDP("Depth buffer copied.\n");
@@ -1153,7 +1133,7 @@ static void rdp_texrect()
   if ((settings.ucode == ucode_PerfectDark) && (rdp.maincimg[1].addr != rdp.maincimg[0].addr) && (rdp.timg.addr >= rdp.maincimg[1].addr) && (rdp.timg.addr < (rdp.maincimg[1].addr+rdp.ci_width*rdp.ci_height*rdp.ci_size)))
   {
     if (fb_emulation_enabled)
-      if (rdp.frame_buffers[rdp.ci_count-1].status == ci_copy_self)
+      if (rdp.ci_count > 0 && rdp.frame_buffers[rdp.ci_count-1].status == ci_copy_self)
       {
         //FRDP("Wrong Texrect. texaddr: %08lx, cimg: %08lx, cimg_end: %08lx\n", rdp.timg.addr, rdp.maincimg[1], rdp.maincimg[1]+rdp.ci_width*rdp.ci_height*rdp.ci_size);
         LRDP("Wrong Texrect.\n");
@@ -1832,8 +1812,6 @@ void setTBufTex(wxUint16 t_mem, wxUint32 cnt)
   }
 }
 
-extern "C" void asmLoadBlock(uint32_t *src, uint32_t *dst, uint32_t off, int dxt, int cnt, int swp);
-
 static inline void loadBlock(uint32_t *src, uint32_t *dst, uint32_t off, int dxt, int cnt)
 {
   uint32_t *v5;
@@ -2029,15 +2007,15 @@ static void rdp_loadblock()
   if (rdp.tiles[tile].size == 3)
     cnt <<= 1;
 
+  if (((rdp.tiles[tile].t_mem + cnt) << 3) > sizeof(rdp.tmem)) {
+    WriteLog(M64MSG_INFO, "rdp_loadblock wanted to write %u bytes after the end of tmem", ((rdp.tiles[tile].t_mem + cnt) << 3) - sizeof(rdp.tmem));
+    cnt = (sizeof(rdp.tmem) >> 3) - (rdp.tiles[tile].t_mem);
+  }
+
   if (rdp.timg.size == 3)
     LoadBlock32b(tile, ul_s, ul_t, lr_s, dxt);
   else
-#ifdef OLDASM_asmLoadBlock
-    wxUIntPtr SwapMethod = wxPtrToUInt(reinterpret_cast<void*>(SwapBlock32));
-    asmLoadBlock((uint32_t *)gfx.RDRAM, (uint32_t *)dst, off, _dxt, cnt, SwapMethod);
-#else
-  loadBlock((uint32_t *)gfx.RDRAM, (uint32_t *)dst, off, _dxt, cnt);
-#endif
+    loadBlock((uint32_t *)gfx.RDRAM, (uint32_t *)dst, off, _dxt, cnt);
 
   rdp.timg.addr += cnt << 3;
   rdp.tiles[tile].lr_t = ul_t + ((dxt*cnt)>>11);
@@ -2052,8 +2030,6 @@ static void rdp_loadblock()
     setTBufTex(rdp.tiles[tile].t_mem, cnt);
 }
 
-
-extern "C" void asmLoadTile(uint32_t *src, uint32_t *dst, int width, int height, int line, int off, uint32_t *end, int swp);
 
 static inline void loadTile(uint32_t *src, uint32_t *dst, int width, int height, int line, int off, uint32_t *end)
 {
@@ -2275,12 +2251,7 @@ static void rdp_loadtile()
     wxUint32 wid_64 = rdp.tiles[tile].line;
     unsigned char *dst = ((unsigned char *)rdp.tmem) + (rdp.tiles[tile].t_mem<<3);
     unsigned char *end = ((unsigned char *)rdp.tmem) + 4096 - (wid_64<<3);
-#ifdef OLDASM_asmLoadTile
-    wxUIntPtr SwapMethod = wxPtrToUInt(reinterpret_cast<void*>(SwapBlock32));
-    asmLoadTile((uint32_t *)gfx.RDRAM, (uint32_t *)dst, wid_64, height, line_n, offs, (uint32_t *)end, SwapMethod);
-#else
     loadTile((uint32_t *)gfx.RDRAM, (uint32_t *)dst, wid_64, height, line_n, offs, (uint32_t *)end);
-#endif
   }
   FRDP("loadtile: tile: %d, ul_s: %d, ul_t: %d, lr_s: %d, lr_t: %d\n", tile,
     ul_s, ul_t, lr_s, lr_t);
@@ -2362,7 +2333,7 @@ static void rdp_fillrect()
     return;
   }
   int pd_multiplayer = (settings.ucode == ucode_PerfectDark) && (rdp.cycle_mode == 3) && (rdp.fill_color == 0xFFFCFFFC);
-  if ((rdp.cimg == rdp.zimg) || (fb_emulation_enabled && rdp.frame_buffers[rdp.ci_count-1].status == ci_zimg) || pd_multiplayer)
+  if ((rdp.cimg == rdp.zimg) || (fb_emulation_enabled && rdp.ci_count > 0 && rdp.frame_buffers[rdp.ci_count-1].status == ci_zimg) || pd_multiplayer)
   {
     LRDP("Fillrect - cleared the depth buffer\n");
     if (fullscreen)
@@ -2468,7 +2439,7 @@ static void rdp_fillrect()
       {
         wxUint32 color = rdp.fill_color;
 
-        if ((settings.hacks&hack_PMario) && rdp.frame_buffers[rdp.ci_count-1].status == ci_aux)
+        if ((settings.hacks&hack_PMario) && rdp.ci_count > 0 && rdp.frame_buffers[rdp.ci_count-1].status == ci_aux)
         {
           //background of auxiliary frame buffers must have zero alpha.
           //make it black, set 0 alpha to plack pixels on frame buffer read
@@ -2681,7 +2652,7 @@ static void rdp_settextureimage()
   rdp.s2dex_tex_loaded = TRUE;
   rdp.update |= UPDATE_TEXTURE;
 
-  if (rdp.frame_buffers[rdp.ci_count-1].status == ci_copy_self && (rdp.timg.addr >= rdp.cimg) && (rdp.timg.addr < rdp.ci_end))
+  if (rdp.ci_count > 0 && rdp.frame_buffers[rdp.ci_count-1].status == ci_copy_self && (rdp.timg.addr >= rdp.cimg) && (rdp.timg.addr < rdp.ci_end))
   {
     if (!rdp.fb_drawn)
     {
@@ -3028,7 +2999,7 @@ static void rdp_setcolorimage()
   rdp.ocimg = rdp.cimg;
   rdp.cimg = segoffset(rdp.cmd1) & BMASK;
   rdp.ci_width = (rdp.cmd0 & 0xFFF) + 1;
-  if (fb_emulation_enabled)
+  if (fb_emulation_enabled && rdp.ci_count > 0)
     rdp.ci_height = rdp.frame_buffers[rdp.ci_count-1].height;
   else if (rdp.ci_width == 32)
     rdp.ci_height = 32;
@@ -3050,7 +3021,7 @@ static void rdp_setcolorimage()
   {
     if (!rdp.cur_image)
     {
-      if (fb_hwfbe_enabled && rdp.ci_width <= 64)
+      if (fb_hwfbe_enabled && rdp.ci_width <= 64 && rdp.ci_count > 0)
         OpenTextureBuffer(rdp.frame_buffers[rdp.ci_count - 1]);
       else if (format > 2)
         rdp.skip_drawing = TRUE;
@@ -3083,7 +3054,7 @@ static void rdp_setcolorimage()
       SwapOK = FALSE;
       if (fb_hwfbe_enabled)
       {
-        if (rdp.copy_ci_index && (rdp.frame_buffers[rdp.ci_count-1].status != ci_zimg))
+        if (rdp.copy_ci_index && rdp.ci_count > 0 && (rdp.frame_buffers[rdp.ci_count-1].status != ci_zimg))
         {
           int idx = (rdp.frame_buffers[rdp.ci_count].status == ci_aux_copy) ? rdp.main_ci_index : rdp.copy_ci_index;
           FRDP("attempt open tex buffer. status: %s, addr: %08lx\n", CIStatus[rdp.frame_buffers[idx].status], rdp.frame_buffers[idx].addr);
@@ -3411,6 +3382,10 @@ void DetectFrameBufferUsage ()
   wxUint32 dlist_start = *(wxUint32*)(gfx.DMEM+0xFF0);
   wxUint32 a;
 
+  // Do nothing if dlist is empty
+  if (dlist_start == 0)
+      return;
+
   int tidal = FALSE;
   if ((settings.hacks&hack_PMario) && (rdp.copy_ci_index || rdp.frame_buffers[rdp.copy_ci_index].status == ci_copy_self))
     tidal = TRUE;
@@ -3482,7 +3457,7 @@ void DetectFrameBufferUsage ()
   if (rdp.black_ci_index > 0 && rdp.black_ci_index < rdp.copy_ci_index)
     rdp.frame_buffers[rdp.black_ci_index].status = ci_main;
 
-  if (rdp.frame_buffers[rdp.ci_count-1].status == ci_unknown)
+  if (rdp.ci_count > 0 && rdp.frame_buffers[rdp.ci_count-1].status == ci_unknown)
   {
     if (rdp.ci_count > 1)
       rdp.frame_buffers[rdp.ci_count-1].status = ci_aux;
@@ -3490,7 +3465,7 @@ void DetectFrameBufferUsage ()
       rdp.frame_buffers[rdp.ci_count-1].status = ci_main;
   }
 
-  if ((rdp.frame_buffers[rdp.ci_count-1].status == ci_aux) &&
+  if (rdp.ci_count > 0 && (rdp.frame_buffers[rdp.ci_count-1].status == ci_aux) &&
     (rdp.frame_buffers[rdp.main_ci_index].width < 320) &&
     (rdp.frame_buffers[rdp.ci_count-1].width > rdp.frame_buffers[rdp.main_ci_index].width))
   {

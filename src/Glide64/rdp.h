@@ -45,7 +45,6 @@ extern char out_buf[2048];
 extern wxUint32 frame_count; // frame counter
 
 //GlideHQ support
-#define TEXTURE_FILTER
 #ifdef TEXTURE_FILTER
 #include "../GlideHQ/Ext_TxFilter.h"
 #endif
@@ -115,9 +114,9 @@ extern wxUint32 frame_count; // frame counter
 #define uc(x) coord[x<<1]
 #define vc(x) coord[(x<<1)+1]
 
-#if defined __VISUALC__
-#define DECLAREALIGN16VAR(var) __declspec(align(16)) float (var)
-#elif defined __GNUG__
+#if defined(_MSC_VER)
+#define DECLAREALIGN16VAR(var) __declspec(align(16)) float var
+#elif defined(__GNUG__)
 #define DECLAREALIGN16VAR(var) float (var) __attribute__ ((aligned(16)))
 #endif
 
@@ -206,6 +205,25 @@ typedef struct {
   int show_fps;
   int clock;
   int clock_24_hr;
+  int rotate;
+
+  // Polygon Offset Settings
+  // These can be used to eliminate stitching artifacts in textures and shadows, which are typically only a problem
+  // in mobile/embedded platforms (e.g. Android), where chipsets are inconsistent in their implementation of
+  // glPolygonOffset. The float settings (factor and units) are typically set to the same value, and are ignored if
+  // force_polygon_offset is False. The float settings (factor and units) are found through trial and error and may be
+  // positive or negative. Mario's shadow in Super Mario 64 is a good test case when tuning this value. If the shadow
+  // flickers, use a larger magnitude for the float settings. Do not use a larger value than necessary to eliminate
+  // artifacts. As a guideline, typical values for mobile chipsets circa 2012-2014 are positive or negative values in
+  // the range 0.001 to 2.
+  int force_polygon_offset;
+  float polygon_offset_factor;
+  float polygon_offset_units;
+
+#ifdef USE_FRAMESKIPPER
+  int autoframeskip;
+  int maxframeskip;
+#endif
 
   int filtering;
   int fog;
@@ -214,6 +232,46 @@ typedef struct {
   int lodmode;
   int aspectmode;
   int use_hotkeys;
+
+  /* game specific settings */
+  int special_alt_tex_size;
+  int special_use_sts1_only;
+  int special_force_calc_sphere;
+  int special_correct_viewport;
+  int special_increase_texrect_edge;
+  int special_decrease_fillrect_edge;
+  int special_texture_correction;
+  int special_pal230;
+  int special_stipple_mode;
+  int special_stipple_pattern;
+  int special_force_microcheck;
+  int special_force_quad3d;
+  int special_clip_zmin;
+  int special_clip_zmax;
+  int special_fast_crc;
+  int special_adjust_aspect;
+  int special_zmode_compare_less;
+  int special_old_style_adither;
+  int special_n64_z_scale;
+  int special_optimize_texrect;
+  int special_ignore_aux_copy;
+  int special_hires_buf_clear;
+  int special_fb_read_alpha;
+  int special_useless_is_useless;
+  int special_fb_crc_mode;
+  int special_filtering;
+  int special_fog;
+  int special_buff_clear;
+  int special_swapmode;
+  int special_aspect;
+  int special_lodmode;
+  int special_fb_smart;
+  int special_fb_hires;
+  int special_fb_read_always;
+  int special_read_back_to_screen;
+  int special_detect_cpu_write;
+  int special_fb_get_info;
+  int special_fb_render;
 
   //Frame buffer emulation options
   #define  fb_emulation            (1<<0)   //frame buffer emulation
@@ -332,6 +390,7 @@ typedef struct {
   #define  hack_Tonic       (1<<26)  //tonic trouble
   #define  hack_Yoshi       (1<<27)  //Yoshi Story
   #define  hack_Zelda       (1<<28)  //zeldas hacks
+  #define  hack_OoT         (1<<29)  //zelda OoT hacks
   wxUint32 hacks;
 
   //wrapper settings
@@ -339,6 +398,7 @@ typedef struct {
   int wrpVRAM;
   int wrpFBO;
   int wrpAnisotropic;
+  int wrpAntiAliasing;
 
 } SETTINGS;
 

@@ -37,7 +37,7 @@
 //
 //****************************************************************
 
-#include "Gfx #1.3.h"
+#include "Gfx_1.3.h"
 #include "Ini.h"
 #include "Config.h"
 #include "Util.h"
@@ -55,6 +55,9 @@
 #include <time.h>
 #define PATH_MAX MAX_PATH
 #endif
+#ifndef PATH_MAX
+  #define PATH_MAX 4096
+#endif
 #include "osal_dynamiclib.h"
 #ifdef TEXTURE_FILTER // Hiroshi Morii <koolsmoky@users.sourceforge.net>
 #include <stdarg.h>
@@ -66,7 +69,6 @@ int  ghq_dmptex_toggle_key = 0;
 #endif
 
 #define G64_VERSION "G64 Mk2"
-#define RELTIME "Date: " __DATE__// " Time: " __TIME__
 
 #ifdef EXT_LOGGING
 std::ofstream extlog;
@@ -114,6 +116,7 @@ ptr_VidExt_ListFullscreenModes   CoreVideo_ListFullscreenModes = NULL;
 ptr_VidExt_SetVideoMode          CoreVideo_SetVideoMode = NULL;
 ptr_VidExt_SetCaption            CoreVideo_SetCaption = NULL;
 ptr_VidExt_ToggleFullScreen      CoreVideo_ToggleFullScreen = NULL;
+ptr_VidExt_ResizeWindow          CoreVideo_ResizeWindow = NULL;
 ptr_VidExt_GL_GetProcAddress     CoreVideo_GL_GetProcAddress = NULL;
 ptr_VidExt_GL_SetAttribute       CoreVideo_GL_SetAttribute = NULL;
 ptr_VidExt_GL_SwapBuffers        CoreVideo_GL_SwapBuffers = NULL;
@@ -126,16 +129,6 @@ int exception = FALSE;
 
 int evoodoo = 0;
 int ev_fullscreen = 0;
-
-#ifdef __WINDOWS__
-#define WINPROC_OVERRIDE
-#endif
-
-#ifdef WINPROC_OVERRIDE
-LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-WNDPROC oldWndProc = NULL;
-WNDPROC myWndProc = NULL;
-#endif
 
 #ifdef ALTTAB_FIX
 HHOOK hhkLowLevelKybd = NULL;
@@ -157,16 +150,21 @@ wxUint32   fps_count = 0;
 
 wxUint32   vi_count = 0;
 float      vi = 0.0f;
-
-wxUint32   region = 0;
-
-float      ntsc_percent = 0.0f;
-float      pal_percent = 0.0f;
-
 #endif
+
+/* custom macros made up by cxd4 for tracking the system type better */
+#define OS_TV_TYPE_PAL 0
+#define OS_TV_TYPE_NTSC 1
+#define OS_TV_TYPE_MPAL 2
+unsigned int region;
 
 // ref rate
 // 60=0x0, 70=0x1, 72=0x2, 75=0x3, 80=0x4, 90=0x5, 100=0x6, 85=0x7, 120=0x8, none=0xff
+
+#ifdef USE_FRAMESKIPPER
+#include "FrameSkipper.h"
+FrameSkipper frameSkipper;
+#endif
 
 unsigned long BMASK = 0x7FFFFF;
 // Reality display processor structure
@@ -242,7 +240,7 @@ void _ChangeSize ()
 #endif
 
   rdp.scale_x = (float)settings.res_x / rdp.vi_width;
-  if (region > 0 && settings.pal230)
+  if (region != OS_TV_TYPE_NTSC && settings.pal230)
   {
     // odd... but pal games seem to want 230 as height...
     rdp.scale_y = res_scl_y * (230.0f / rdp.vi_height)  * aspect;
@@ -342,7 +340,7 @@ static wxConfigBase * OpenIni()
   return ini;
 }
 */
-#ifndef OLDAPI
+
 void WriteLog(m64p_msg_level level, const char *msg, ...)
 {
   char buf[1024];
@@ -356,7 +354,6 @@ void WriteLog(m64p_msg_level level, const char *msg, ...)
     l_DebugCallback(l_DebugCallContext, level, buf);
   }
 }
-#endif
 
 void ReadSettings ()
 {
@@ -374,13 +371,28 @@ void ReadSettings ()
   settings.scr_res_x = settings.res_x = Config_ReadScreenInt("ScreenWidth");
   settings.scr_res_y = settings.res_y = Config_ReadScreenInt("ScreenHeight");
 
-  settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 0);
+  settings.rotate = Config_ReadScreenInt("Rotate");
+
+  settings.force_polygon_offset = (BOOL)Config_ReadInt("force_polygon_offset", "If true, use polygon offset values specified below", 0, TRUE, TRUE);
+  settings.polygon_offset_factor = Config_ReadFloat("polygon_offset_factor", "Specifies a scale factor that is used to create a variable depth offset for each polygon", 0.0f);
+  settings.polygon_offset_units = Config_ReadFloat("polygon_offset_units", "Is multiplied by an implementation-specific value to create a constant depth offset", 0.0f);
+
+#ifdef USE_FRAMESKIPPER
+  settings.autoframeskip = (BOOL)Config_ReadInt("autoframeskip", "If true, skip up to maxframeskip frames to maintain clock schedule; if false, skip exactly maxframeskip frames", 0, TRUE, TRUE);
+  settings.maxframeskip = Config_ReadInt("maxframeskip", "If autoframeskip is true, skip up to this many frames to maintain clock schedule; if autoframeskip is false, skip exactly this many frames", 0, TRUE, FALSE);
+  if( settings.autoframeskip )
+    frameSkipper.setSkips( FrameSkipper::AUTO, settings.maxframeskip );
+  else
+    frameSkipper.setSkips( FrameSkipper::MANUAL, settings.maxframeskip );
+#endif
+
+  settings.vsync = (BOOL)Config_ReadInt ("vsync", "Vertical sync", 1);
   settings.ssformat = (BOOL)Config_ReadInt("ssformat", "TODO:ssformat", 0);
   //settings.fast_crc = (BOOL)Config_ReadInt ("fast_crc", "Fast CRC", 0);
 
   settings.show_fps = (BYTE)Config_ReadInt ("show_fps", "Display performance stats (add together desired flags): 1=FPS counter, 2=VI/s counter, 4=% speed, 8=FPS transparent", 0, TRUE, FALSE);
   settings.clock = (BOOL)Config_ReadInt ("clock", "Clock enabled", 0);
-  settings.clock_24_hr = (BOOL)Config_ReadInt ("clock_24_hr", "Clock is 24-hour", 0);
+  settings.clock_24_hr = (BOOL)Config_ReadInt ("clock_24_hr", "Clock is 24-hour", 1);
   // settings.advanced_options only good for GUI config
   // settings.texenh_options = only good for GUI config
   //settings.use_hotkeys = ini->Read(_T("hotkeys"), 1l);
@@ -388,7 +400,7 @@ void ReadSettings ()
   settings.wrpResolution = (BYTE)Config_ReadInt ("wrpResolution", "Wrapper resolution", 0, TRUE, FALSE);
   settings.wrpVRAM = (BYTE)Config_ReadInt ("wrpVRAM", "Wrapper VRAM", 0, TRUE, FALSE);
   settings.wrpFBO = (BOOL)Config_ReadInt ("wrpFBO", "Wrapper FBO", 1, TRUE, TRUE);
-  settings.wrpAnisotropic = (BOOL)Config_ReadInt ("wrpAnisotropic", "Wrapper Anisotropic Filtering", 0, TRUE, TRUE);
+  settings.wrpAnisotropic = (BOOL)Config_ReadInt ("wrpAnisotropic", "Wrapper Anisotropic Filtering", 1, TRUE, TRUE);
 
 #ifndef _ENDUSER_RELEASE_
   settings.autodetect_ucode = (BOOL)Config_ReadInt ("autodetect_ucode", "Auto-detect microcode", 1);
@@ -459,6 +471,46 @@ void ReadSettings ()
   settings.ghq_hirs_let_texartists_fly = Config_ReadInt ("ghq_hirs_let_texartists_fly", "Use full alpha channel -- could cause issues for some tex packs", 0, TRUE, TRUE);
   settings.ghq_hirs_dump = Config_ReadInt ("ghq_hirs_dump", "Dump textures", 0, FALSE, TRUE);
 #endif
+
+  settings.special_alt_tex_size = Config_ReadInt("alt_tex_size", "Alternate texture size method: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_use_sts1_only = Config_ReadInt("use_sts1_only", "Use first SETTILESIZE only: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_force_calc_sphere = Config_ReadInt("force_calc_sphere", "Use spheric mapping only: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_correct_viewport = Config_ReadInt("correct_viewport", "Force positive viewport: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_increase_texrect_edge = Config_ReadInt("increase_texrect_edge", "Force texrect size to integral value: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_decrease_fillrect_edge = Config_ReadInt("decrease_fillrect_edge", "Reduce fillrect size by 1: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_texture_correction = Config_ReadInt("texture_correction", "Enable perspective texture correction emulation: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_pal230 = Config_ReadInt("pal230", "Set special scale for PAL games: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_stipple_mode = Config_ReadInt("stipple_mode", "3DFX Dithered alpha emulation mode: -1=Game default, >=0=dithered alpha emulation mode", -1, TRUE, FALSE);
+  settings.special_stipple_pattern = Config_ReadInt("stipple_pattern", "3DFX Dithered alpha pattern: -1=Game default, >=0=pattern used for dithered alpha emulation", -1, TRUE, FALSE);
+  settings.special_force_microcheck = Config_ReadInt("force_microcheck", "Check microcode each frame: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_force_quad3d = Config_ReadInt("force_quad3d", "Force 0xb5 command to be quad, not line 3D: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_clip_zmin = Config_ReadInt("clip_zmin", "Enable near z clipping: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_clip_zmax = Config_ReadInt("clip_zmax", "Enable far plane clipping: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_fast_crc = Config_ReadInt("fast_crc", "Use fast CRC algorithm: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_adjust_aspect = Config_ReadInt("adjust_aspect", "Adjust screen aspect for wide screen mode: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_zmode_compare_less = Config_ReadInt("zmode_compare_less", "Force strict check in Depth buffer test: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_old_style_adither = Config_ReadInt("old_style_adither", "Apply alpha dither regardless of alpha_dither_mode: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_n64_z_scale = Config_ReadInt("n64_z_scale", "Scale vertex z value before writing to depth buffer: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_optimize_texrect = Config_ReadInt("optimize_texrect", "Fast texrect rendering with hwfbe: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_ignore_aux_copy = Config_ReadInt("ignore_aux_copy", "Do not copy auxiliary frame buffers: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_hires_buf_clear = Config_ReadInt("hires_buf_clear", "Clear auxiliary texture frame buffers: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_fb_read_alpha = Config_ReadInt("fb_read_alpha", "Read alpha from framebuffer: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_useless_is_useless = Config_ReadInt("useless_is_useless", "Handle unchanged fb: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_fb_crc_mode = Config_ReadInt("fb_crc_mode", "Set frambuffer CRC mode: -1=Game default, 0=disable CRC, 1=fast CRC, 2=safe CRC", -1, TRUE, FALSE);
+  settings.special_filtering = Config_ReadInt("filtering", "Filtering mode: -1=Game default, 0=automatic, 1=force bilinear, 2=force point sampled", -1, TRUE, FALSE);
+  settings.special_fog = Config_ReadInt("fog", "Fog: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_buff_clear = Config_ReadInt("buff_clear", "Buffer clear on every frame: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_swapmode = Config_ReadInt("swapmode", "Buffer swapping method: -1=Game default, 0=swap buffers when vertical interrupt has occurred, 1=swap buffers when set of conditions is satisfied. Prevents flicker on some games, 2=mix of first two methods", -1, TRUE, FALSE);
+  settings.special_aspect = Config_ReadInt("aspect", "Aspect ratio: -1=Game default, 0=Force 4:3, 1=Force 16:9, 2=Stretch, 3=Original", -1, TRUE, FALSE);
+  settings.special_lodmode = Config_ReadInt("lodmode", "LOD calculation: -1=Game default, 0=disable. 1=fast, 2=precise", -1, TRUE, FALSE);
+  settings.special_fb_smart = Config_ReadInt("fb_smart", "Smart framebuffer: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_fb_hires = Config_ReadInt("fb_hires", "Hardware frame buffer emulation: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_fb_read_always = Config_ReadInt("fb_read_always", "Read framebuffer every frame (may be slow use only for effects that need it e.g. Banjo Kazooie, DK64 transitions): -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_read_back_to_screen = Config_ReadInt("read_back_to_screen", "Render N64 frame buffer as texture: -1=Game default, 0=disable, 1=mode1, 2=mode2", -1, TRUE, FALSE);
+  settings.special_detect_cpu_write = Config_ReadInt("detect_cpu_write", "Show images written directly by CPU: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_fb_get_info = Config_ReadInt("fb_get_info", "Get frame buffer info: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+  settings.special_fb_render = Config_ReadInt("fb_render", "Enable software depth render: -1=Game default, 0=disable. 1=enable", -1, TRUE, FALSE);
+
   //TODO-PORT: remove?
   ConfigWrapper();
 }
@@ -471,7 +523,9 @@ void ReadSpecialSettings (const char * name)
   settings.hacks = 0;
 
   //detect games which require special hacks
-  if (strstr(name, (const char *)"ZELDA") || strstr(name, (const char *)"MASK"))
+  if (strstr(name, (const char *)"ZELDA"))
+    settings.hacks |= (hack_Zelda | hack_OoT);
+  else if(strstr(name, (const char *)"MASK"))
     settings.hacks |= hack_Zelda;
   else if (strstr(name, (const char *)"ROADSTERS TROPHY"))
     settings.hacks |= hack_Zelda;
@@ -538,37 +592,112 @@ void ReadSpecialSettings (const char * name)
   ini->SetPath(name);
 
   ini->Read(_T("alt_tex_size"), &(settings.alt_tex_size));
+  if (settings.special_alt_tex_size >= 0)
+    settings.alt_tex_size = settings.special_alt_tex_size;
+
   ini->Read(_T("use_sts1_only"), &(settings.use_sts1_only));
+  if (settings.special_use_sts1_only >= 0)
+    settings.use_sts1_only = settings.special_use_sts1_only;
+
   ini->Read(_T("force_calc_sphere"), &(settings.force_calc_sphere));
+  if (settings.special_force_calc_sphere >= 0)
+    settings.force_calc_sphere = settings.special_force_calc_sphere;
+
   ini->Read(_T("correct_viewport"), &(settings.correct_viewport));
+  if (settings.special_correct_viewport >= 0)
+    settings.correct_viewport = settings.special_correct_viewport;
+
   ini->Read(_T("increase_texrect_edge"), &(settings.increase_texrect_edge));
+  if (settings.special_increase_texrect_edge >= 0)
+    settings.increase_texrect_edge = settings.special_increase_texrect_edge;
+
   ini->Read(_T("decrease_fillrect_edge"), &(settings.decrease_fillrect_edge));
+  if (settings.special_decrease_fillrect_edge >= 0)
+    settings.decrease_fillrect_edge = settings.special_decrease_fillrect_edge;
+
   if (ini->Read(_T("texture_correction"), -1) == 0) settings.texture_correction = 0;
   else settings.texture_correction = 1;
+  if (settings.special_texture_correction >= 0)
+    settings.texture_correction = settings.special_texture_correction;
+
   if (ini->Read(_T("pal230"), -1) == 1) settings.pal230 = 1;
   else settings.pal230 = 0;
+  if (settings.special_pal230 >= 0)
+    settings.pal230 = settings.special_pal230;
+
   ini->Read(_T("stipple_mode"), &(settings.stipple_mode));
+  if (settings.special_stipple_mode >= 0)
+    settings.stipple_mode = settings.special_stipple_mode;
+
   int stipple_pattern = ini->Read(_T("stipple_pattern"), -1);
   if (stipple_pattern > 0) settings.stipple_pattern = (wxUint32)stipple_pattern;
+  if (settings.special_stipple_pattern >= 0)
+    stipple_pattern = settings.special_stipple_pattern;
+
   ini->Read(_T("force_microcheck"), &(settings.force_microcheck));
+  if (settings.special_force_microcheck >= 0)
+    settings.force_microcheck = settings.special_force_microcheck;
+
   ini->Read(_T("force_quad3d"), &(settings.force_quad3d));
+  if (settings.special_force_quad3d >= 0)
+    settings.force_quad3d = settings.special_force_quad3d;
+
   ini->Read(_T("clip_zmin"), &(settings.clip_zmin));
+  if (settings.special_clip_zmin >= 0)
+    settings.clip_zmin = settings.special_clip_zmin;
+
   ini->Read(_T("clip_zmax"), &(settings.clip_zmax));
+  if (settings.special_clip_zmax >= 0)
+    settings.clip_zmax = settings.special_clip_zmax;
+
   ini->Read(_T("fast_crc"), &(settings.fast_crc));
+  if (settings.special_fast_crc >= 0)
+    settings.fast_crc = settings.special_fast_crc;
+
   ini->Read(_T("adjust_aspect"), &(settings.adjust_aspect), 1);
+  if (settings.special_adjust_aspect >= 0)
+    settings.adjust_aspect = settings.special_adjust_aspect;
+
   ini->Read(_T("zmode_compare_less"), &(settings.zmode_compare_less));
+  if (settings.special_zmode_compare_less >= 0)
+    settings.zmode_compare_less = settings.special_zmode_compare_less;
+
   ini->Read(_T("old_style_adither"), &(settings.old_style_adither));
+  if (settings.special_old_style_adither >= 0)
+    settings.old_style_adither = settings.special_old_style_adither;
+
   ini->Read(_T("n64_z_scale"), &(settings.n64_z_scale));
+  if (settings.special_n64_z_scale >= 0)
+    settings.n64_z_scale = settings.special_n64_z_scale;
+
   if (settings.n64_z_scale)
     ZLUT_init();
 
   //frame buffer
   int optimize_texrect = ini->Read(_T("optimize_texrect"), -1);
+  if (settings.special_optimize_texrect >= 0)
+    optimize_texrect = settings.special_optimize_texrect;
+
   int ignore_aux_copy = ini->Read(_T("ignore_aux_copy"), -1);
+  if (settings.special_ignore_aux_copy >= 0)
+    ignore_aux_copy = settings.special_ignore_aux_copy;
+
   int hires_buf_clear = ini->Read(_T("hires_buf_clear"), -1);
+  if (settings.special_hires_buf_clear >= 0)
+    hires_buf_clear = settings.special_hires_buf_clear;
+
   int read_alpha = ini->Read(_T("fb_read_alpha"), -1);
+  if (settings.special_fb_read_alpha >= 0)
+    read_alpha = settings.special_fb_read_alpha;
+
   int useless_is_useless = ini->Read(_T("useless_is_useless"), -1);
+  if (settings.special_useless_is_useless >= 0)
+    useless_is_useless = settings.special_useless_is_useless;
+
   int fb_crc_mode = ini->Read(_T("fb_crc_mode"), -1);
+  if (settings.special_fb_crc_mode >= 0)
+    fb_crc_mode = settings.special_fb_crc_mode;
+
 
   if (optimize_texrect > 0) settings.frame_buffer |= fb_optimize_texrect;
   else if (optimize_texrect == 0) settings.frame_buffer &= ~fb_optimize_texrect;
@@ -585,11 +714,29 @@ void ReadSpecialSettings (const char * name)
   //  if (settings.custom_ini)
   {
     ini->Read(_T("filtering"), &(settings.filtering));
+    if (settings.special_filtering >= 0)
+      settings.filtering = settings.special_filtering;
+
     ini->Read(_T("fog"), &(settings.fog));
+    if (settings.special_fog >= 0)
+      settings.fog = settings.special_fog;
+
     ini->Read(_T("buff_clear"), &(settings.buff_clear));
+    if (settings.special_buff_clear >= 0)
+      settings.buff_clear = settings.special_buff_clear;
+
     ini->Read(_T("swapmode"), &(settings.swapmode));
+    if (settings.special_swapmode >= 0)
+      settings.swapmode = settings.special_swapmode;
+
     ini->Read(_T("aspect"), &(settings.aspectmode));
+    if (settings.special_aspect >= 0)
+      settings.aspectmode = settings.special_aspect;
+
     ini->Read(_T("lodmode"), &(settings.lodmode));
+    if (settings.special_lodmode >= 0)
+      settings.lodmode = settings.special_lodmode;
+
     /*
     TODO-port: fix resolutions
     int resolution;
@@ -609,12 +756,32 @@ void ReadSpecialSettings (const char * name)
 
     //frame buffer
     int smart_read = ini->Read(_T("fb_smart"), -1);
+    if (settings.special_fb_smart >= 0)
+      smart_read = settings.special_fb_smart;
+
     int hires = ini->Read(_T("fb_hires"), -1);
+    if (settings.special_fb_hires >= 0)
+      hires = settings.special_fb_hires;
+
     int read_always = ini->Read(_T("fb_read_always"), -1);
+    if (settings.special_fb_read_always >= 0)
+      read_always = settings.special_fb_read_always;
+
     int read_back_to_screen = ini->Read(_T("read_back_to_screen"), -1);
+    if (settings.special_read_back_to_screen >= 0)
+      read_back_to_screen = settings.special_read_back_to_screen;
+
     int cpu_write_hack = ini->Read(_T("detect_cpu_write"), -1);
+    if (settings.special_detect_cpu_write >= 0)
+      cpu_write_hack = settings.special_detect_cpu_write;
+
     int get_fbinfo = ini->Read(_T("fb_get_info"), -1);
+    if (settings.special_fb_get_info >= 0)
+      get_fbinfo = settings.special_fb_get_info;
+
     int depth_render = ini->Read(_T("fb_render"), -1);
+    if (settings.special_fb_render >= 0)
+      depth_render = settings.special_fb_render;
 
     if (smart_read > 0) settings.frame_buffer |= fb_emulation;
     else if (smart_read == 0) settings.frame_buffer &= ~fb_emulation;
@@ -914,8 +1081,11 @@ void DisplayLoadProgress(const wchar_t *format, ...)
 
 int InitGfx ()
 {
+#ifdef TEXTURE_FILTER
   wchar_t romname[256];
   wchar_t foldername[PATH_MAX + 64];
+  wchar_t cachename[PATH_MAX + 64];
+#endif
   if (fullscreen)
     ReleaseGfx ();
 
@@ -1100,21 +1270,8 @@ int InitGfx ()
   else
     grTextureBufferExt = 0;
 
-#pragma message ( "TODO: not sure what to replace wxDynamicLibrary with" )
-/*#ifdef __WINDOWS__
-  wxDynamicLibrary glidelib(_T("glide3x"));
-  if (glidelib.IsLoaded())
-  {
-    if (glidelib.HasSymbol(_T("_grStippleMode@4")))
-      grStippleModeExt = (GRSTIPPLE)glidelib.GetSymbol(_T("_grStippleMode@4"));
-    if (glidelib.HasSymbol(_T("_grStipplePattern@4")))
-      grStipplePatternExt = (GRSTIPPLE)glidelib.GetSymbol(_T("_grStipplePattern@4"));
-  }
-#else
-*/
   grStippleModeExt = (GRSTIPPLE)grStippleMode;
   grStipplePatternExt = (GRSTIPPLE)grStipplePattern;
-//#endif
 
   if (grStipplePatternExt)
     grStipplePatternExt(settings.stipple_pattern);
@@ -1231,8 +1388,9 @@ int InitGfx ()
 
       ghq_dmptex_toggle_key = 0;
 
-      swprintf(romname, 256, L"%hs", rdp.RomName);
-      swprintf(foldername, sizeof(foldername), L"%hs", ConfigGetUserDataPath());
+      swprintf(romname, sizeof(romname) / sizeof(*romname), L"%hs", rdp.RomName);
+      swprintf(foldername, sizeof(foldername) / sizeof(*foldername), L"%hs", ConfigGetUserDataPath());
+      swprintf(cachename, sizeof(cachename) / sizeof(*cachename), L"%hs", ConfigGetUserCachePath());
 
       settings.ghq_use = (int)ext_ghq_init(voodoo.max_tex_size, // max texture width supported by hardware
         voodoo.max_tex_size, // max texture height supported by hardware
@@ -1240,6 +1398,7 @@ int InitGfx ()
         options,
         settings.ghq_cache_size * 1024*1024, // cache texture to system memory
         foldername,
+        cachename,
         romname, // name of ROM. must be no longer than 256 characters
         DisplayLoadProgress);
     }
@@ -1321,9 +1480,17 @@ EXPORT void CALL ReadScreen2(void *dest, int *width, int *height, int front)
         BYTE *ptr = (BYTE*) info.lfbPtr + (info.strideInBytes * y);
         for (wxUint32 x=0; x<settings.res_x; x++)
         {
+#ifdef USE_GLES
+          // GLESv2 only guarantees support for GL_RGBA pixel format
+          line[x*3]   = ptr[0];  // red
+          line[x*3+1] = ptr[1];  // green
+          line[x*3+2] = ptr[2];  // blue
+#else
+          // OpenGL guarantees support for GL_BGRA pixel format
           line[x*3]   = ptr[2];  // red
           line[x*3+1] = ptr[1];  // green
           line[x*3+2] = ptr[0];  // blue
+#endif
           ptr += 4;
         }
         line += settings.res_x * 3;
@@ -1342,6 +1509,28 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
   VLOG("CALL PluginStartup ()\n");
     l_DebugCallback = DebugCallback;
     l_DebugCallContext = Context;
+
+    /* attach and call the CoreGetAPIVersions function, check Config and Video Extension API versions for compatibility */
+    ptr_CoreGetAPIVersions CoreAPIVersionFunc;
+    CoreAPIVersionFunc = (ptr_CoreGetAPIVersions) osal_dynlib_getproc(CoreLibHandle, "CoreGetAPIVersions");
+    if (CoreAPIVersionFunc == NULL)
+    {
+        ERRLOG("Core emulator broken; no CoreAPIVersionFunc() function found.");
+        return M64ERR_INCOMPATIBLE;
+    }
+    int ConfigAPIVersion, DebugAPIVersion, VidextAPIVersion;
+    (*CoreAPIVersionFunc)(&ConfigAPIVersion, &DebugAPIVersion, &VidextAPIVersion, NULL);
+    if ((ConfigAPIVersion & 0xffff0000) != (CONFIG_API_VERSION & 0xffff0000))
+    {
+        ERRLOG("Emulator core Config API incompatible with this plugin");
+        return M64ERR_INCOMPATIBLE;
+    }
+    if ((VidextAPIVersion & 0xffff0000) != (VIDEXT_API_VERSION & 0xffff0000))
+    {
+        ERRLOG("Emulator core Video Extension API incompatible with this plugin");
+        return M64ERR_INCOMPATIBLE;
+    }
+
     ConfigOpenSection = (ptr_ConfigOpenSection) osal_dynlib_getproc(CoreLibHandle, "ConfigOpenSection");
     ConfigSetParameter = (ptr_ConfigSetParameter) osal_dynlib_getproc(CoreLibHandle, "ConfigSetParameter");
     ConfigGetParameter = (ptr_ConfigGetParameter) osal_dynlib_getproc(CoreLibHandle, "ConfigGetParameter");
@@ -1375,12 +1564,13 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
     CoreVideo_SetVideoMode = (ptr_VidExt_SetVideoMode) osal_dynlib_getproc(CoreLibHandle, "VidExt_SetVideoMode");
     CoreVideo_SetCaption = (ptr_VidExt_SetCaption) osal_dynlib_getproc(CoreLibHandle, "VidExt_SetCaption");
     CoreVideo_ToggleFullScreen = (ptr_VidExt_ToggleFullScreen) osal_dynlib_getproc(CoreLibHandle, "VidExt_ToggleFullScreen");
+    CoreVideo_ResizeWindow = (ptr_VidExt_ResizeWindow) osal_dynlib_getproc(CoreLibHandle, "VidExt_ResizeWindow");
     CoreVideo_GL_GetProcAddress = (ptr_VidExt_GL_GetProcAddress) osal_dynlib_getproc(CoreLibHandle, "VidExt_GL_GetProcAddress");
     CoreVideo_GL_SetAttribute = (ptr_VidExt_GL_SetAttribute) osal_dynlib_getproc(CoreLibHandle, "VidExt_GL_SetAttribute");
     CoreVideo_GL_SwapBuffers = (ptr_VidExt_GL_SwapBuffers) osal_dynlib_getproc(CoreLibHandle, "VidExt_GL_SwapBuffers");
 
     if (!CoreVideo_Init || !CoreVideo_Quit || !CoreVideo_ListFullscreenModes || !CoreVideo_SetVideoMode ||
-        !CoreVideo_SetCaption || !CoreVideo_ToggleFullScreen || !CoreVideo_GL_GetProcAddress ||
+        !CoreVideo_SetCaption || !CoreVideo_ToggleFullScreen || !CoreVideo_ResizeWindow || !CoreVideo_GL_GetProcAddress ||
         !CoreVideo_GL_SetAttribute || !CoreVideo_GL_SwapBuffers)
     {
         ERRLOG("Couldn't connect to Core video functions");
@@ -1391,7 +1581,6 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
     if (configDir)
     {
         SetConfigDir(configDir);
-        CoreVideo_Init();
         ReadSettings();
 		return M64ERR_SUCCESS;
     }
@@ -1416,13 +1605,13 @@ EXPORT m64p_error CALL PluginGetVersion(m64p_plugin_type *PluginType, int *Plugi
         *PluginType = M64PLUGIN_GFX;
 
     if (PluginVersion != NULL)
-        *PluginVersion = 0x016304;
+        *PluginVersion = PLUGIN_VERSION;
 
     if (APIVersion != NULL)
         *APIVersion = VIDEO_PLUGIN_API_VERSION;
 
     if (PluginNamePtr != NULL)
-        *PluginNamePtr = "Glide64 Video Plugin";
+        *PluginNamePtr = PLUGIN_NAME;
 
     if (Capabilities != NULL)
     {
@@ -1456,60 +1645,6 @@ output:   none
 EXPORT void CALL ChangeWindow (void)
 {
   VLOG ("ChangeWindow()\n");
-  #ifdef OLDAPI
-  if (evoodoo)
-  {
-    if (!ev_fullscreen)
-    {
-      to_fullscreen = TRUE;
-      ev_fullscreen = TRUE;
-#ifdef __WINDOWS__
-      if (gfx.hStatusBar)
-        ShowWindow( gfx.hStatusBar, SW_HIDE );
-      ShowCursor( FALSE );
-#endif
-    }
-    else
-    {
-      ev_fullscreen = FALSE;
-      InitGfx ();
-#ifdef __WINDOWS__
-      ShowCursor( TRUE );
-      if (gfx.hStatusBar)
-        ShowWindow( gfx.hStatusBar, SW_SHOW );
-      SetWindowLong (gfx.hWnd, GWL_WNDPROC, (long)oldWndProc);
-#endif
-    }
-  }
-  else
-  {
-    // Go to fullscreen at next dlist
-    // This is for compatibility with 1964, which reloads the plugin
-    //  when switching to fullscreen
-    if (!fullscreen)
-    {
-      to_fullscreen = TRUE;
-#ifdef __WINDOWS__
-      if (gfx.hStatusBar)
-        ShowWindow( gfx.hStatusBar, SW_HIDE );
-      ShowCursor( FALSE );
-#endif
-    }
-    else
-    {
-      ReleaseGfx ();
-#ifdef __WINDOWS__
-      ShowCursor( TRUE );
-      if (gfx.hStatusBar)
-        ShowWindow( gfx.hStatusBar, SW_SHOW );
-      // SetWindowLong fixes the following Windows XP Banshee issues:
-      // 1964 crash error when loading another rom.
-      // All N64 emu's minimize, restore crashes.
-      SetWindowLong (gfx.hWnd, GWL_WNDPROC, (long)oldWndProc);
-#endif
-    }
-  }
-#endif
 }
 
 /******************************************************************
@@ -1522,11 +1657,6 @@ output:   none
 void CALL CloseDLL (void)
 {
   VLOG ("CloseDLL ()\n");
-
-  // re-set the old window proc
-#ifdef WINPROC_OVERRIDE
-  SetWindowLong (gfx.hWnd, GWL_WNDPROC, (long)oldWndProc);
-#endif
 
 #ifdef ALTTAB_FIX
   if (hhkLowLevelKybd)
@@ -1594,7 +1724,7 @@ void CALL GetDllInfo ( PLUGIN_INFO * PluginInfo )
   VLOG ("GetDllInfo ()\n");
   PluginInfo->Version = 0x0103;     // Set to 0x0103
   PluginInfo->Type  = PLUGIN_TYPE_GFX;  // Set to PLUGIN_TYPE_GFX
-  sprintf (PluginInfo->Name, "Glide64 "G64_VERSION RELTIME);  // Name of the DLL
+  sprintf (PluginInfo->Name, "Glide64mk2 " G64_VERSION);  // Name of the DLL
 
   // If DLL supports memory these memory options then set them to TRUE or FALSE
   //  if it does not support it
@@ -1603,7 +1733,7 @@ void CALL GetDllInfo ( PLUGIN_INFO * PluginInfo )
   // bswap on a dword (32 bits) boundry
 }
 
-#ifndef WIN32
+#ifndef _WIN32
 BOOL WINAPI QueryPerformanceCounter(PLARGE_INTEGER counter)
 {
    struct timeval tv;
@@ -1661,15 +1791,6 @@ EXPORT int CALL InitiateGFX (GFX_INFO Gfx_Info)
 
   gfx = Gfx_Info;
 
-#ifdef WINPROC_OVERRIDE
-  // [H.Morii] inject our own winproc so that "alt-enter to fullscreen"
-  // message is shown when the emulator window is activated.
-  WNDPROC curWndProc = (WNDPROC)GetWindowLong(gfx.hWnd, GWL_WNDPROC);
-  if (curWndProc && curWndProc != (WNDPROC)WndProc) {
-    oldWndProc = (WNDPROC)SetWindowLong (gfx.hWnd, GWL_WNDPROC, (long)WndProc);
-  }
-#endif
-
   util_init ();
   math_init ();
   TexCacheInit ();
@@ -1714,6 +1835,18 @@ output:   none
 EXPORT void CALL MoveScreen (int xpos, int ypos)
 {
   rdp.window_changed = TRUE;
+}
+
+/******************************************************************
+Function: ResizeVideoOutput
+Purpose:  This function is called to force us to resize our output OpenGL window.
+          This is currently unsupported, and should never be called because we do
+          not pass the RESIZABLE flag to VidExt_SetVideoMode when initializing.
+input:    new width and height
+output:   none
+*******************************************************************/
+EXPORT void CALL ResizeVideoOutput(int Width, int Height)
+{
 }
 
 /******************************************************************
@@ -1770,14 +1903,51 @@ EXPORT int CALL RomOpen (void)
   ucode_error_report = TRUE;	// allowed to report ucode errors
   rdp_reset ();
 
-  // Get the country code & translate to NTSC(0) or PAL(1)
-  wxUint16 code = ((wxUint16*)gfx.HEADER)[0x1F^1];
+  /* cxd4 -- Glide64 tries to predict PAL scaling based on the ROM header. */
+  region = OS_TV_TYPE_NTSC; /* Invalid region codes are probably NTSC betas. */
+  switch (gfx.HEADER[0x3E ^ 3])
+  {
+     case 'A': /* generic NTSC, not documented, used by 1080 Snowboarding */
+        region = OS_TV_TYPE_NTSC; break;
+     case 'B': /* Brazilian */
+        region = OS_TV_TYPE_MPAL; break;
+     case 'C': /* Chinese */
+        region = OS_TV_TYPE_NTSC; break;
+     case 'D': /* German */
+        region = OS_TV_TYPE_PAL ; break;
+     case 'E': /* North America */
+        region = OS_TV_TYPE_NTSC; break;
+     case 'F': /* French */
+        region = OS_TV_TYPE_PAL ; break;
+     case 'G': /* Gateway 64 (NTSC) */
+        region = OS_TV_TYPE_NTSC; break;
+     case 'H': /* Dutch */
+        region = OS_TV_TYPE_PAL ; break;
+     case 'I': /* Italian */
+        region = OS_TV_TYPE_PAL ; break;
+     case 'J': /* Japanese */
+        region = OS_TV_TYPE_NTSC; break;
+     case 'K': /* Korean */
+        region = OS_TV_TYPE_NTSC; break;
+     case 'L': /* Gateway 64 (PAL) */
+        region = OS_TV_TYPE_PAL ; break;
+     case 'N': /* Canadian */
+        region = OS_TV_TYPE_NTSC; break;
+     case 'P': /* European (basic spec.) */
+        region = OS_TV_TYPE_PAL ; break;
+     case 'S': /* Spanish */
+        region = OS_TV_TYPE_PAL ; break;
+     case 'U': /* Australian */
+        region = OS_TV_TYPE_PAL ; break;
+     case 'W': /* Scandinavian */
+        region = OS_TV_TYPE_PAL ; break;
+     case 'X': case 'Y': case 'Z': /* documented "others", always PAL I think? */
+        region = OS_TV_TYPE_PAL ; break;
+  }
 
-  if (code == 0x4400) region = 1; // Germany (PAL)
-  if (code == 0x4500) region = 0; // USA (NTSC)
-  if (code == 0x4A00) region = 0; // Japan (NTSC)
-  if (code == 0x5000) region = 1; // Europe (PAL)
-  if (code == 0x5500) region = 0; // Australia (NTSC)
+#ifdef USE_FRAMESKIPPER
+  frameSkipper.setTargetFPS(region == OS_TV_TYPE_PAL ? 50 : 60);
+#endif
 
   char name[21] = "DEFAULT";
   ReadSpecialSettings (name);
@@ -1919,6 +2089,9 @@ output:   none
 wxUint32 update_screen_count = 0;
 EXPORT void CALL UpdateScreen (void)
 {
+#ifdef USE_FRAMESKIPPER
+  frameSkipper.update();
+#endif
 #ifdef LOG_KEY
   if (CheckKeyPressed(G64_VK_SPACE, 0x0001))
   {
@@ -1926,7 +2099,7 @@ EXPORT void CALL UpdateScreen (void)
   }
 #endif
   char out_buf[128];
-  sprintf (out_buf, "UpdateScreen (). Origin: %08lx, Old origin: %08lx, width: %d\n", *gfx.VI_ORIGIN_REG, rdp.vi_org_reg, *gfx.VI_WIDTH_REG);
+  sprintf (out_buf, "UpdateScreen (). Origin: %08x, Old origin: %08x, width: %d\n", *gfx.VI_ORIGIN_REG, rdp.vi_org_reg, *gfx.VI_WIDTH_REG);
   VLOG (out_buf);
   LRDP(out_buf);
 
@@ -1947,8 +2120,6 @@ EXPORT void CALL UpdateScreen (void)
   {
     fps = (float)(fps_count / diff_secs);
     vi = (float)(vi_count / diff_secs);
-    ntsc_percent = vi / 0.6f;
-    pal_percent = vi / 0.5f;
     fps_last = fps_next;
     fps_count = 0;
     vi_count = 0;
@@ -2052,10 +2223,9 @@ void newSwapBuffers()
     {
       if (settings.show_fps & 4)
       {
-        if (region)   // PAL
-          output (0, y, 0, "%d%% ", (int)pal_percent);
-        else
-          output (0, y, 0, "%d%% ", (int)ntsc_percent);
+        const float percentage = vi / (region == OS_TV_TYPE_PAL ? .5f : .6f); /* PAL is 50Hz; NTSC & MPAL are 60Hz */
+
+        output(0, y, 0, "%d%% ", (int)percentage);
         y -= 16;
       }
       if (settings.show_fps & 2)
@@ -2169,92 +2339,6 @@ void newSwapBuffers()
       output (120.0f, (float)settings.res_y, 0, message, 0);
     }
   }
-    #ifdef OLDAPI
-  if (capture_screen)
-  {
-    //char path[256];
-    // Make the directory if it doesn't exist
-    if (!wxDirExists(capture_path))
-      wxMkdir(capture_path);
-    wxString path;
-    wxString romName = rdp.RomName;
-    romName.Replace(wxT(" "), wxT("_"), true);
-    romName.Replace(wxT(":"), wxT(";"), true);
-
-    for (int i=1; ; i++)
-    {
-      path = capture_path;
-      path += wxT("Glide64_");
-      path += romName;
-      path += wxT("_");
-      if (i < 10)
-        path += wxT("0");
-      path << i << wxT(".") << ScreenShotFormats[settings.ssformat].extension;
-      if (!wxFileName::FileExists(path))
-        break;
-    }
-
-    const wxUint32 offset_x = (wxUint32)rdp.offset_x;
-    const wxUint32 offset_y = (wxUint32)rdp.offset_y;
-    const wxUint32 image_width = settings.scr_res_x - offset_x*2;
-    const wxUint32 image_height = settings.scr_res_y - offset_y*2;
-
-    GrLfbInfo_t info;
-    info.size = sizeof(GrLfbInfo_t);
-    if (grLfbLock (GR_LFB_READ_ONLY,
-      GR_BUFFER_BACKBUFFER,
-      GR_LFBWRITEMODE_565,
-      GR_ORIGIN_UPPER_LEFT,
-      FXFALSE,
-      &info))
-    {
-      wxUint8 *ssimg = (wxUint8*)malloc(image_width * image_height * 3); // will be free in wxImage destructor
-      int sspos = 0;
-      wxUint32 offset_src = info.strideInBytes * offset_y;
-
-      // Copy the screen
-      if (info.writeMode == GR_LFBWRITEMODE_8888)
-      {
-        wxUint32 col;
-        for (wxUint32 y = 0; y < image_height; y++)
-        {
-          wxUint32 *ptr = (wxUint32*)((wxUint8*)info.lfbPtr + offset_src);
-          ptr += offset_x;
-          for (wxUint32 x = 0; x < image_width; x++)
-          {
-            col = *(ptr++);
-            ssimg[sspos++] = (wxUint8)((col >> 16) & 0xFF);
-            ssimg[sspos++] = (wxUint8)((col >> 8) & 0xFF);
-            ssimg[sspos++] = (wxUint8)(col & 0xFF);
-          }
-          offset_src += info.strideInBytes;
-        }
-      }
-      else
-      {
-        wxUint16 col;
-        for (wxUint32 y = 0; y < image_height; y++)
-        {
-          wxUint16 *ptr = (wxUint16*)((wxUint8*)info.lfbPtr + offset_src);
-          ptr += offset_x;
-          for (wxUint32 x = 0; x < image_width; x++)
-          {
-            col = *(ptr++);
-            ssimg[sspos++] = (wxUint8)((float)(col >> 11) / 31.0f * 255.0f);
-            ssimg[sspos++] = (wxUint8)((float)((col >> 5) & 0x3F) / 63.0f * 255.0f);
-            ssimg[sspos++] = (wxUint8)((float)(col & 0x1F) / 31.0f * 255.0f);
-          }
-          offset_src += info.strideInBytes;
-        }
-      }
-      // Unlock the backbuffer
-      grLfbUnlock (GR_LFB_READ_ONLY, GR_BUFFER_BACKBUFFER);
-      wxImage screenshot(image_width, image_height, ssimg);
-      screenshot.SaveFile(path, ScreenShotFormats[settings.ssformat].type);
-      capture_screen = 0;
-    }
-  }
-    #endif
 
   // Capture the screen if debug capture is set
   if (_debugger.capture)
@@ -2431,27 +2515,6 @@ EXPORT void CALL ViWidthChanged (void)
 {
 }
 
-#ifdef WINPROC_OVERRIDE
-LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  switch (msg)
-  {
-  case WM_ACTIVATEAPP:
-    if (wParam == TRUE && !fullscreen) rdp.window_changed = TRUE;
-    break;
-  case WM_PAINT:
-    if (!fullscreen) rdp.window_changed = TRUE;
-    break;
-
-    /*    case WM_DESTROY:
-    SetWindowLong (gfx.hWnd, GWL_WNDPROC, (long)oldWndProc);
-    break;*/
-  }
-
-  return CallWindowProc(oldWndProc, hwnd, msg, wParam, lParam);
-}
-#endif
-
 }
 
 int CheckKeyPressed(int key, int mask)
@@ -2459,12 +2522,8 @@ int CheckKeyPressed(int key, int mask)
 static Glide64Keys g64Keys;
   if (settings.use_hotkeys == 0)
     return 0;
-#ifdef __WINDOWS__
-  return (GetAsyncKeyState(g64Keys[key]) & mask);
-#else
   if (grKeyPressed)
     return grKeyPressed(g64Keys[key]);
-#endif
   return 0;
 }
 
@@ -2521,154 +2580,3 @@ do_it:
 }
 #endif
 
-//
-// DllMain - called when the DLL is loaded, use this to get the DLL's instance
-//
-#ifdef OLDAPI
-class wxDLLApp : public wxApp
-{
-public:
-  virtual bool OnInit();
-};
-
-IMPLEMENT_APP_NO_MAIN(wxDLLApp)
-
-bool wxDLLApp::OnInit()
-{
-  if (mutexProcessDList == NULL)
-    mutexProcessDList = new wxMutex(wxMUTEX_DEFAULT);
-  wxImage::AddHandler(new wxPNGHandler);
-  wxImage::AddHandler(new wxJPEGHandler);
-  return true;
-}
-
-#ifndef __WINDOWS__
-int __attribute__ ((constructor)) DllLoad(void);
-int __attribute__ ((destructor)) DllUnload(void);
-#endif
-
-// Called when the library is loaded and before dlopen() returns
-int DllLoad(void)
-{
-    int argc = 0;
-    char **argv = NULL;
-    wxEntryStart(argc, argv);
-    if (wxTheApp)
-      return wxTheApp->CallOnInit() ? TRUE : FALSE;
-    return 0;
-}
-
-// Called when the library is unloaded and before dlclose() returns
-int DllUnload(void)
-{
-    if ( wxTheApp )
-      wxTheApp->OnExit();
-    wxEntryCleanup();
-    return TRUE;
-}
-
-#ifdef __WINDOWS__
-extern "C" int WINAPI DllMain (HINSTANCE hinstDLL,
-                     wxUint32 fdwReason,
-                     LPVOID lpReserved)
-{
-  sprintf (out_buf, "DllMain (%08lx - %d)\n", hinstDLL, fdwReason);
-  LOG (out_buf);
-
-  if (fdwReason == DLL_PROCESS_ATTACH)
-  {
-    wxSetInstance(hinstDLL);
-    return DllLoad();
-  }
-  else if (fdwReason == DLL_PROCESS_DETACH)
-  {
-    if (GFXWindow != NULL)
-      GFXWindow->SetHWND(NULL);
-    return DllUnload();
-  }
-  return TRUE;
-}
-
-void CALL ReadScreen(void **dest, int *width, int *height)
-{
-  *width = settings.res_x;
-  *height = settings.res_y;
-  wxUint8 * buff = (wxUint8*)malloc(settings.res_x * settings.res_y * 3);
-  wxUint8 * line = buff;
-  *dest = (void*)buff;
-
-  if (!fullscreen)
-  {
-    for (wxUint32 y=0; y<settings.res_y; y++)
-    {
-      for (wxUint32 x=0; x<settings.res_x; x++)
-      {
-        line[x*3] = 0x20;
-        line[x*3+1] = 0x7f;
-        line[x*3+2] = 0x40;
-      }
-    }
-    LOG ("ReadScreen. not in the fullscreen!\n");
-    return;
-  }
-
-  GrLfbInfo_t info;
-  info.size = sizeof(GrLfbInfo_t);
-  if (grLfbLock (GR_LFB_READ_ONLY,
-    GR_BUFFER_FRONTBUFFER,
-    GR_LFBWRITEMODE_565,
-    GR_ORIGIN_UPPER_LEFT,
-    FXFALSE,
-    &info))
-  {
-    wxUint32 offset_src=info.strideInBytes*(settings.scr_res_y-1);
-
-    // Copy the screen
-    wxUint8 r, g, b;
-    if (info.writeMode == GR_LFBWRITEMODE_8888)
-    {
-      wxUint32 col;
-      for (wxUint32 y=0; y<settings.res_y; y++)
-      {
-        wxUint32 *ptr = (wxUint32*)((wxUint8*)info.lfbPtr + offset_src);
-        for (wxUint32 x=0; x<settings.res_x; x++)
-        {
-          col = *(ptr++);
-          r = (wxUint8)((col >> 16) & 0xFF);
-          g = (wxUint8)((col >> 8) & 0xFF);
-          b = (wxUint8)(col & 0xFF);
-          line[x*3] = b;
-          line[x*3+1] = g;
-          line[x*3+2] = r;
-        }
-        line += settings.res_x * 3;
-        offset_src -= info.strideInBytes;
-      }
-    }
-    else
-    {
-      wxUint16 col;
-      for (wxUint32 y=0; y<settings.res_y; y++)
-      {
-        wxUint16 *ptr = (wxUint16*)((wxUint8*)info.lfbPtr + offset_src);
-        for (wxUint32 x=0; x<settings.res_x; x++)
-        {
-          col = *(ptr++);
-          r = (wxUint8)((float)(col >> 11) / 31.0f * 255.0f);
-          g = (wxUint8)((float)((col >> 5) & 0x3F) / 63.0f * 255.0f);
-          b = (wxUint8)((float)(col & 0x1F) / 31.0f * 255.0f);
-          line[x*3] = b;
-          line[x*3+1] = g;
-          line[x*3+2] = r;
-        }
-        line += settings.res_x * 3;
-        offset_src -= info.strideInBytes;
-      }
-    }
-    // Unlock the frontbuffer
-    grLfbUnlock (GR_LFB_READ_ONLY, GR_BUFFER_FRONTBUFFER);
-  }
-  LOG ("ReadScreen. Success.\n");
-}
-#endif
-#endif

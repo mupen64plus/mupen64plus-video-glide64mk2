@@ -25,11 +25,12 @@
 #pragma warning(disable: 4786)
 #endif
 
-#include "../Glide64/m64p.h"
+#include <boost/filesystem.hpp>
+#include <zlib.h>
 #include "TxCache.h"
 #include "TxDbg.h"
-#include <zlib.h>
-#include <boost/filesystem.hpp>
+#include "../Glide64/m64p.h"
+#include "../Glide64/Gfx_1.3.h"
 
 TxCache::~TxCache()
 {
@@ -39,7 +40,8 @@ TxCache::~TxCache()
   delete _txUtil;
 }
 
-TxCache::TxCache(int options, int cachesize, const wchar_t *path, const wchar_t *ident,
+TxCache::TxCache(int options, int cachesize, const wchar_t *datapath,
+                 const wchar_t *cachepath, const wchar_t *ident,
                  dispInfoFuncExt callback)
 {
   _txUtil = new TxUtil();
@@ -50,8 +52,10 @@ TxCache::TxCache(int options, int cachesize, const wchar_t *path, const wchar_t 
   _totalSize = 0;
 
   /* save path name */
-  if (path)
-    _path.assign(path);
+  if (datapath)
+    _datapath.assign(datapath);
+  if (cachepath)
+    _cachepath.assign(cachepath);
 
   /* save ROM name */
   if (ident)
@@ -244,8 +248,10 @@ TxCache::save(const wchar_t *path, const wchar_t *filename, int config)
 #else
     char curpath[MAX_PATH];
     wcstombs(cbuf, cachepath.wstring().c_str(), MAX_PATH);
-    GETCWD(MAX_PATH, curpath);
-    CHDIR(cbuf);
+    if (GETCWD(MAX_PATH, curpath) == NULL)
+        ERRLOG("Error while retrieving working directory!");
+    if (CHDIR(cbuf) != 0)
+        ERRLOG("Error while changing current directory to '%s'!", cbuf);
 #endif
 
     wcstombs(cbuf, filename, MAX_PATH);
@@ -311,7 +317,8 @@ TxCache::save(const wchar_t *path, const wchar_t *filename, int config)
       gzclose(gzfp);
     }
 
-    CHDIR(curpath);
+    if (CHDIR(curpath) != 0)
+        ERRLOG("Error while changing current directory back to original path of '%s'!", curpath);
   }
 
   return _cache.empty();
@@ -332,8 +339,10 @@ TxCache::load(const wchar_t *path, const wchar_t *filename, int config)
 #else
   char curpath[MAX_PATH];
   wcstombs(cbuf, cachepath.wstring().c_str(), MAX_PATH);
-  GETCWD(MAX_PATH, curpath);
-  CHDIR(cbuf);
+  if (GETCWD(MAX_PATH, curpath) == NULL)
+      ERRLOG("Error while retrieving working directory!");
+  if (CHDIR(cbuf) != 0)
+      ERRLOG("Error while changing current directory to '%s'!", cbuf);
 #endif
 
   wcstombs(cbuf, filename, MAX_PATH);
@@ -476,7 +485,8 @@ TxCache::load(const wchar_t *path, const wchar_t *filename, int config)
     }
   }
 
-  CHDIR(curpath);
+  if (CHDIR(curpath) != 0)
+      ERRLOG("Error while changing current directory back to original path of '%s'!", curpath);
 
   return !_cache.empty();
 }

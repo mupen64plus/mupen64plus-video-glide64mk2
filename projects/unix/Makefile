@@ -1,5 +1,5 @@
 #/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-# *   Mupen64plus-video-glide64 - Makefile                                  *
+# *   Mupen64plus-video-glide64mk2 - Makefile                               *
 # *   Mupen64Plus homepage: http://code.google.com/p/mupen64plus/           *
 # *   Copyright (C) 2010 Jon Ring                                           *
 # *   Copyright (C) 2007-2009 Richard Goedeken                              *
@@ -44,6 +44,7 @@ ifeq ("$(UNAME)","Darwin")
   OS = OSX
   SO_EXTENSION = dylib
   SHARED = -bundle
+  BOOST_SUFFIX = -mt
 endif
 ifeq ("$(UNAME)","FreeBSD")
   OS = FREEBSD
@@ -54,7 +55,6 @@ ifeq ("$(UNAME)","OpenBSD")
   OS = FREEBSD
   SO_EXTENSION = so
   SHARED = -shared
-  $(warning OS type "$(UNAME)" not officially supported.')
 endif
 ifneq ("$(filter GNU/kFreeBSD kfreebsd,$(UNAME))","")
   OS = LINUX
@@ -67,7 +67,7 @@ ifeq ("$(patsubst MINGW%,MINGW,$(UNAME))","MINGW")
   SHARED = -shared
   PIC = 0
   BOOST_SUFFIX = -mt
-  BOOST_THREAD_SUFFIX = _win32-mt
+  CPPFLAGS += -DNO_FILTER_THREAD
 endif
 ifeq ("$(OS)","NONE")
   $(error OS type "$(UNAME)" not supported.  Please file bug report at 'http://code.google.com/p/mupen64plus/issues')
@@ -91,7 +91,7 @@ ifneq ("$(filter pentium i%86,$(HOST_CPU))","")
   ARCH_DETECTED := 32BITS
   PIC ?= 0
 endif
-ifneq ("$(filter ppc powerpc,$(HOST_CPU))","")
+ifneq ("$(filter ppc macppc socppc powerpc,$(HOST_CPU))","")
   CPU := PPC
   ARCH_DETECTED := 32BITS
   BIG_ENDIAN := 1
@@ -121,26 +121,12 @@ ifeq ("$(CPU)","NONE")
 endif
 
 # base CFLAGS, LDLIBS, and LDFLAGS
-OPTFLAGS ?= -O3
-WARNFLAGS ?= -Wall
+OPTFLAGS ?= -O3 -flto
+WARNFLAGS ?= -Wall -Wno-unused-function
 CFLAGS += $(OPTFLAGS) $(WARNFLAGS) -ffast-math -fno-strict-aliasing -fvisibility=hidden -I../../src -I../../src/Glitch64/inc -DGCC
-CXXFLAGS += -fvisibility-inlines-hidden
+CXXFLAGS += -fvisibility-inlines-hidden -std=gnu++0x
 LDFLAGS += $(SHARED)
-BOOST_SUFFIX ?= -mt
-BOOST_THREAD_SUFFIX ?= -mt
-LDLIBS += -lboost_filesystem$(BOOST_SUFFIX) -lboost_system$(BOOST_SUFFIX) -lboost_thread$(BOOST_THREAD_SUFFIX)
-
-ifeq ($(OS), MINGW)
-  CFLAGS += -DBOOST_THREAD_USE_LIB
-  LDLIBS += -lpthread
-else
-  CFLAGS += -pthread
-  LDLIBS += -pthread
-endif
-
-# default configuration programs
-SDL_CONFIG = $(CROSS_COMPILE)sdl-config
-PKG_CONFIG = $(CROSS_COMPILE)pkg-config
+BOOST_SUFFIX ?=
 
 ifeq ($(CPU), X86)
   CFLAGS +=  -mmmx -msse
@@ -150,10 +136,8 @@ endif
 # On 32-bit x86 systems we do not want to use -fPIC because we don't have to and it has a big performance penalty on this arch
 ifeq ($(PIC), 1)
   CFLAGS += -fPIC
-  LDFLAGS += -fPIC
 else
   CFLAGS += -fno-PIC
-  LDFLAGS += -fno-PIC
 endif
 
 ifeq ($(BIG_ENDIAN), 1)
@@ -166,7 +150,7 @@ ifeq ($(ARCH_DETECTED), 64BITS_32)
     $(error Do not use the BITS=32 option with FreeBSD, use -m32 and -m elf_i386)
   endif
   CFLAGS += -m32
-  LDFLAGS += -m32 -Wl,-m,elf_i386
+  LDFLAGS += -Wl,-m,elf_i386
 endif
 
 # set special flags per-system
@@ -176,27 +160,18 @@ ifeq ($(OS), LINUX)
   LDLIBS += -ldl
 endif
 ifeq ($(OS), OSX)
-  # Select the proper SDK
-  # Also, SDKs are stored in a different location since XCode 4.3
-  OSX_SDK ?= $(shell sw_vers -productVersion | cut -f1 -f2 -d .)
-  OSX_XCODEMAJ = $(shell xcodebuild -version | grep '[0-9]*\.[0-9]*' | cut -f2 -d ' ' | cut -f1 -d .)
-  OSX_XCODEMIN = $(shell xcodebuild -version | grep '[0-9]*\.[0-9]*' | cut -f2 -d ' ' | cut -f2 -d .)
-  OSX_XCODEGE43 = $(shell echo "`expr $(OSX_XCODEMAJ) \>= 4``expr $(OSX_XCODEMIN) \>= 3`")
-  ifeq ($(OSX_XCODEGE43), 11)
-    OSX_SYSROOT := /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
-  else
-    OSX_SYSROOT := /Developer/SDKs
-  endif
+  #xcode-select has been around since XCode 3.0, i.e. OS X 10.5
+  OSX_SDK_ROOT = $(shell xcode-select -print-path)/Platforms/MacOSX.platform/Developer/SDKs
+  OSX_SDK_PATH = $(OSX_SDK_ROOT)/$(shell ls $(OSX_SDK_ROOT) | tail -1)
 
   ifeq ($(CPU), X86)
+    LDFLAGS += -bundle -L/opt/local/lib
+    CXXFLAGS += -stdlib=libc++
+    LDLIBS += -ldl
     ifeq ($(ARCH_DETECTED), 64BITS)
-      CFLAGS += -pipe -arch x86_64 -mmacosx-version-min=$(OSX_SDK) -isysroot $(OSX_SYSROOT)/MacOSX$(OSX_SDK).sdk
-      LDFLAGS += -bundle -arch x86_64
-      LDLIBS += -ldl
+      CFLAGS += -pipe -I /opt/local/include -arch x86_64 -mmacosx-version-min=10.7 -isysroot $(OSX_SDK_PATH)
     else
-      CFLAGS += -pipe -mmmx -msse -fomit-frame-pointer -arch i686 -mmacosx-version-min=$(OSX_SDK) -isysroot $(OSX_SYSROOT)/MacOSX$(OSX_SDK).sdk
-      LDFLAGS += -bundle -arch i686
-      LDLIBS += -ldl
+      CFLAGS += -pipe -I /opt/local/include -mmmx -msse -fomit-frame-pointer -arch i686 -mmacosx-version-min=10.7 -isysroot $(OSX_SDK_PATH)
     endif
   endif
 endif
@@ -204,64 +179,80 @@ ifeq ($(OS), FREEBSD)
   LDLIBS += -lc
 endif
 
-# search for OpenGL libraries
-GL_LIBS=
-ifeq ($(OS), OSX)
-  GL_LIBS = -framework OpenGL
-endif
-ifeq ($(OS), MINGW)
-  GL_LIBS = -lopengl32
+ifeq ($(origin PKG_CONFIG), undefined)
+  PKG_CONFIG = $(CROSS_COMPILE)pkg-config
+  ifeq ($(shell which $(PKG_CONFIG) 2>/dev/null),)
+    $(error $(PKG_CONFIG) not found)
+  endif
 endif
 
-ifeq ($(shell which $(PKG_CONFIG) 2>/dev/null),)
-  $(error $(PKG_CONFIG) not found)
-endif
-ifeq ($(shell pkg-config --modversion libpng 2>/dev/null),)
-  $(error No libpng development libraries found!)
-endif
 ifeq ($(OS), OSX) # use system zlib on OSX
-  LDLIBS += -lz
-else
+  ZLIB_LDLIBS += -lz
+endif
+
+ifeq ($(origin ZLIB_CFLAGS) $(origin ZLIB_LDLIBS), undefined undefined)
   ifeq ($(shell $(PKG_CONFIG) --modversion zlib 2>/dev/null),)
     $(error No zlib development libraries found!)
   endif
-  CFLAGS += $(shell $(PKG_CONFIG) --cflags zlib)
-  LDLIBS +=  $(shell $(PKG_CONFIG) --libs zlib)
+  ZLIB_CFLAGS += $(shell $(PKG_CONFIG) --cflags zlib)
+  ZLIB_LDLIBS +=  $(shell $(PKG_CONFIG) --libs zlib)
 endif
+CFLAGS += $(ZLIB_CFLAGS)
+LDLIBS += $(ZLIB_LDLIBS)
 
-CFLAGS += $(shell $(PKG_CONFIG) --cflags libpng)
-LDLIBS +=  $(shell $(PKG_CONFIG) --libs libpng)
+ifeq ($(origin LIBPNG_CFLAGS) $(origin LIBPNG_LDLIBS), undefined undefined)
+  ifeq ($(shell $(PKG_CONFIG) --modversion libpng 2>/dev/null),)
+    $(error No libpng development libraries found!)
+  endif
+  LIBPNG_CFLAGS += $(shell $(PKG_CONFIG) --cflags libpng)
+  LIBPNG_LDLIBS +=  $(shell $(PKG_CONFIG) --libs libpng)
+endif
+CFLAGS += $(LIBPNG_CFLAGS)
+LDLIBS += $(LIBPNG_LDLIBS)
 
-ifeq ("$(GL_LIBS)", "")
+# search for OpenGL libraries
+ifeq ($(USE_GLES), 1)
+  CFLAGS += -DUSE_GLES
+  GL_LDLIBS = -lGLESv2
+endif
+ifeq ($(OS), OSX)
+  GL_LDLIBS = -framework OpenGL
+endif
+ifeq ($(OS), MINGW)
+  GL_LDLIBS = -lopengl32
+endif
+ifeq ($(origin GL_CFLAGS) $(origin GL_LDLIBS), undefined undefined)
   ifeq ($(shell $(PKG_CONFIG) --modversion gl 2>/dev/null),)
     $(error No OpenGL development libraries found!)
   endif
-  CFLAGS += $(shell $(PKG_CONFIG) --cflags gl)
-  GL_LIBS = $(shell $(PKG_CONFIG) --libs gl)
+  GL_CFLAGS += $(shell $(PKG_CONFIG) --cflags gl)
+  GL_LDLIBS +=  $(shell $(PKG_CONFIG) --libs gl)
 endif
-LDLIBS += $(GL_LIBS)
+CFLAGS += $(GL_CFLAGS)
+LDLIBS += $(GL_LDLIBS)
 
 # test for presence of SDL
-ifeq ($(shell which $(SDL_CONFIG) 2>/dev/null),)
-  $(error No SDL development libraries found!)
+ifeq ($(origin SDL_CFLAGS) $(origin SDL_LDLIBS), undefined undefined)
+  SDL_CONFIG = $(CROSS_COMPILE)sdl2-config
+  ifeq ($(shell which $(SDL_CONFIG) 2>/dev/null),)
+    SDL_CONFIG = $(CROSS_COMPILE)sdl-config
+    ifeq ($(shell which $(SDL_CONFIG) 2>/dev/null),)
+      $(error No SDL development libraries found!)
+    else
+      $(warning Using SDL 1.2 libraries)
+    endif
+  endif
+  SDL_CFLAGS  += $(shell $(SDL_CONFIG) --cflags)
+  SDL_LDLIBS += $(shell $(SDL_CONFIG) --libs)
+  ifeq ($(OS),OSX)
+    SDL_LDLIBS += -Wl,-framework,Cocoa
+  endif
 endif
-ifeq ($(OS),FREEBSD)
-    CFLAGS  += $(shell $(SDL_CONFIG) --cflags) -D__unix__
-    LDLIBS += $(shell $(SDL_CONFIG) --libs)
-endif
-ifeq ($(OS),OSX)
-    CFLAGS  += $(shell $(SDL_CONFIG) --cflags) -D__unix__
-    # sdl-config on mac screws up when we're trying to build a library and not an executable
-    # SDL 1.3 is supposed to fix that, if it's ever released
-    LDLIBS += -L/usr/local/lib -lSDL -Wl,-framework,Cocoa
-endif
-ifeq ($(OS),LINUX)
-    CFLAGS  += $(shell $(SDL_CONFIG) --cflags) -D__unix__
-    LDLIBS += $(shell $(SDL_CONFIG) --libs)
-endif
-ifeq ($(OS), MINGW)
-  CFLAGS += $(shell $(SDL_CONFIG) --cflags)
-  LDLIBS += $(shell $(SDL_CONFIG) --libs)
+CFLAGS += $(SDL_CFLAGS)
+LDLIBS += $(SDL_LDLIBS)
+
+ifneq ($(OS), MINGW)
+  CPPFLAGS += -D__unix__
 endif
 
 # set mupen64plus core API header path
@@ -303,17 +294,25 @@ INSTALL  ?= install
 MKDIR ?= mkdir -p
 COMPILE.c = $(Q_CC)$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
 COMPILE.cc = $(Q_CXX)$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
-LINK.o = $(Q_LD)$(CXX) $(LDFLAGS) $(TARGET_ARCH)
+LINK.o = $(Q_LD)$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 
 # set special flags for given Makefile parameters
 ifeq ($(DEBUG),1)
   CFLAGS += -g
   INSTALL_STRIP_FLAG ?= 
 else
-  INSTALL_STRIP_FLAG ?= -s
+  ifneq ($(OS),OSX)
+    INSTALL_STRIP_FLAG ?= -s
+  endif
 endif
 ifeq ($(NO_ASM), 1)
   CFLAGS += -DNO_ASM
+endif
+ifeq ($(NO_SSE), 1)
+  CFLAGS += -DNOSSE
+endif
+ifeq ($(USE_FRAMESKIPPER), 1)
+  CFLAGS += -DUSE_FRAMESKIPPER
 endif
 
 # set installation options
@@ -335,10 +334,6 @@ OBJDIR = _obj$(POSTFIX)
 
 # list of source files to compile
 SOURCE = \
-	$(SRCDIR)/Glitch64/combiner.cpp \
-	$(SRCDIR)/Glitch64/geometry.cpp \
-	$(SRCDIR)/Glitch64/main.cpp \
-	$(SRCDIR)/Glitch64/textures.cpp \
 	$(SRCDIR)/Glide64/3dmath.cpp \
 	$(SRCDIR)/Glide64/Combine.cpp \
 	$(SRCDIR)/Glide64/Config.cpp \
@@ -352,7 +347,29 @@ SOURCE = \
 	$(SRCDIR)/Glide64/rdp.cpp \
 	$(SRCDIR)/Glide64/TexBuffer.cpp \
 	$(SRCDIR)/Glide64/TexCache.cpp \
-	$(SRCDIR)/Glide64/Util.cpp \
+	$(SRCDIR)/Glide64/Util.cpp
+
+ifeq ($(USE_GLES), 1)
+	SOURCE += \
+		$(SRCDIR)/Glitch64/OGLEScombiner.cpp \
+		$(SRCDIR)/Glitch64/OGLESgeometry.cpp \
+		$(SRCDIR)/Glitch64/OGLESglitchmain.cpp \
+		$(SRCDIR)/Glitch64/OGLEStextures.cpp
+else
+	SOURCE += \
+		$(SRCDIR)/Glitch64/OGLcombiner.cpp \
+		$(SRCDIR)/Glitch64/OGLgeometry.cpp \
+		$(SRCDIR)/Glitch64/OGLglitchmain.cpp \
+		$(SRCDIR)/Glitch64/OGLtextures.cpp
+endif
+
+ifeq ($(USE_FRAMESKIPPER), 1)
+	SOURCE += \
+		$(SRCDIR)/Glide64/FrameSkipper.cpp
+endif
+
+ifneq ($(HIRES), 0)
+SOURCE += \
 	$(SRCDIR)/GlideHQ/Ext_TxFilter.cpp \
 	$(SRCDIR)/GlideHQ/TxFilterExport.cpp \
 	$(SRCDIR)/GlideHQ/TxFilter.cpp \
@@ -369,16 +386,27 @@ SOURCE = \
 	$(SRCDIR)/GlideHQ/TxReSample.cpp \
 	$(SRCDIR)/GlideHQ/TxDbg.cpp \
 	$(SRCDIR)/GlideHQ/tc-1.1+/fxt1.c \
-	$(SRCDIR)/GlideHQ/tc-1.1+/dxtn.c \
 	$(SRCDIR)/GlideHQ/tc-1.1+/wrapper.c \
 	$(SRCDIR)/GlideHQ/tc-1.1+/texstore.c
+
+CPPFLAGS += -DTEXTURE_FILTER -DDUMP_CACHE
+LDLIBS += -lboost_filesystem$(BOOST_SUFFIX) -lboost_system$(BOOST_SUFFIX)
+
+  ifeq ($(TXCDXTN), 1)
+    CPPFLAGS += -DTXCDXTN_EXTERNAL
+  else 
+    SOURCE += \
+	$(SRCDIR)/GlideHQ/tc-1.1+/s2tc/s2tc_algorithm.cpp \
+	$(SRCDIR)/GlideHQ/tc-1.1+/s2tc/s2tc_libtxc_dxtn.cpp
+  endif
+endif
 
 ifeq ($(OS),MINGW)
 SOURCE += $(SRCDIR)/Glide64/osal_dynamiclib_win32.c
 else
 SOURCE += $(SRCDIR)/Glide64/osal_dynamiclib_unix.c
 endif
-
+ 
 
 
 # generate a list of object files build, make a temporary directory for them
@@ -386,47 +414,6 @@ OBJECTS := $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(filter %.c, $(SOURCE)))
 OBJECTS += $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(filter %.cpp, $(SOURCE)))
 OBJDIRS = $(dir $(OBJECTS))
 $(shell $(MKDIR) $(OBJDIRS))
-
-# development only support for using asm on i386 linux
-ifeq ($(OLD_ASM),1)
-
-SOURCE = $(SRCDIR)/Glide64/Texture.asm
-#CFLAGS += -DOLDASM_asmTextureCRC
-#CFLAGS += -DOLDASM_asmLoad4bCI
-#CFLAGS += -DOLDASM_asmLoad4bIAPal
-#CFLAGS += -DOLDASM_asmLoad4bIA
-#CFLAGS += -DOLDASM_asmLoad4bI
-#CFLAGS += -DOLDASM_asmLoad16bRGBA
-#CFLAGS += -DOLDASM_asmLoad16bIA
-#CFLAGS += -DOLDASM_asmLoad8bCI
-#CFLAGS += -DOLDASM_asmLoad8bIA8
-#CFLAGS += -DOLDASM_asmLoad8bIA4
-#CFLAGS += -DOLDASM_asmLoad8bI
-#CFLAGS += -DOLDASM_asmMirror8bS
-#CFLAGS += -DOLDASM_asmWrap8bS
-#CFLAGS += -DOLDASM_asmClamp8bS
-#CFLAGS += -DOLDASM_asmMirror16bS
-#CFLAGS += -DOLDASM_asmWrap16bS
-#CFLAGS += -DOLDASM_asmClamp16bS
-#CFLAGS += -DOLDASM_asmMirror32bS
-#CFLAGS += -DOLDASM_asmWrap32bS
-#CFLAGS += -DOLDASM_asmClamp32bS
-#CFLAGS += -DOLDASM_asmTexConv_ARGB1555_ARGB4444
-#CFLAGS += -DOLDASM_asmTexConv_AI88_ARGB4444
-#CFLAGS += -DOLDASM_asmTexConv_AI44_ARGB4444
-#CFLAGS += -DOLDASM_asmTexConv_A8_ARGB4444
-#CFLAGS += -DOLDASM_asmLoadBlock
-#CFLAGS += -DOLDASM_asmLoadTile
-
-OBJECTS += $(patsubst $(SRCDIR)/%.asm, $(OBJDIR)/%.o, $(filter %.asm, $(SOURCE)))
-
-AS          = nasm
-COMPILE.asm = $(AS) -O6 -felf -I$(SRCDIR)/Glide64/
-
-$(OBJDIR)/%.o: $(SRCDIR)/%.asm
-	$(COMPILE.asm) -o $@ $<
-
-endif
 
 # build targets
 TARGET = mupen64plus-video-glide64mk2$(POSTFIX).$(SO_EXTENSION)
@@ -442,11 +429,16 @@ targets:
 	@echo "  Options:"
 	@echo "    BITS=32       == build 32-bit binaries on 64-bit machine"
 	@echo "    NO_ASM=1      == build without inline assembly code (x86 MMX/SSE)"
+	@echo "    USE_GLES=1    == build against GLESv2 instead of OpenGL"
+	@echo "    NO_SSE=1      == build without SSE support"
+	@echo "    USE_FRAMESKIPPER=1 == build with frameskipper feature"
 	@echo "    APIDIR=path   == path to find Mupen64Plus Core headers"
-	@echo "    OPTFLAGS=flag == compiler optimization (default: -O3)"
+	@echo "    OPTFLAGS=flag == compiler optimization (default: -O3 -flto)"
 	@echo "    WARNFLAGS=flag == compiler warning levels (default: -Wall)"
 	@echo "    PIC=(1|0)     == Force enable/disable of position independent code"
 	@echo "    POSTFIX=name  == String added to the name of the the build (default: '')"
+	@echo "    HIRES=(1|0)   == Enables/Disables support for hires textures and texture filters (default: 1)"
+	@echo "    TXCDXTN=(1|0) == Enable/Disable external txc_dxtn library (default: 0)"
 	@echo "  Install Options:"
 	@echo "    PREFIX=path   == install/uninstall prefix (default: /usr/local)"
 	@echo "    SHAREDIR=path == path to install shared data files (default: PREFIX/share/mupen64plus)"
@@ -455,7 +447,6 @@ targets:
 	@echo "    DESTDIR=path  == path to prepend to all installation paths (only for packagers)"
 	@echo "  Debugging Options:"
 	@echo "    DEBUG=1       == add debugging symbols"
-	@echo "    LTO=1         == enable experimental build with link-time optimization"
 	@echo "    V=1           == show verbose compiler output"
 
 all: $(TARGET)
@@ -476,15 +467,10 @@ clean:
 rebuild: clean all
 
 # build dependency files
-CFLAGS += -MD
+CFLAGS += -MD -MP
 -include $(OBJECTS:.o=.d)
 
 CXXFLAGS += $(CFLAGS)
-ifeq ($(LTO), 1)
-  CFLAGS += -flto -ffunction-sections -fdata-sections
-  CXXFLAGS += -flto -ffunction-sections -fdata-sections
-  LDFLAGS += -fuse-linker-plugin -Wl,--gc-sections $(CXXFLAGS)
-endif
 
 # standard build rules
 $(OBJDIR)/%.o: $(SRCDIR)/%.c

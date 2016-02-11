@@ -28,9 +28,28 @@
 #include "TxFilter.h"
 #include "TextureFilters.h"
 #include "TxDbg.h"
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
-#include <boost/format.hpp>
+#ifndef NO_FILTER_THREAD
+#include <SDL.h>
+#include <SDL_thread.h>
+#endif
+#if defined(__MINGW32__)
+#define swprintf _snwprintf
+#endif
+
+typedef struct {
+    uint32 *src;
+    uint32 srcwidth;
+    uint32 srcheight;
+    uint32 *dest;
+    uint32 filter;
+} FilterParams;
+
+int FilterThreadFunc(void *pFilterParams)
+{
+    FilterParams *pParams = (FilterParams *) pFilterParams;
+    filter_8888(pParams->src, pParams->srcwidth, pParams->srcheight, pParams->dest, pParams->filter);
+    return 0;
+}
 
 void TxFilter::clear()
 {
@@ -60,12 +79,12 @@ TxFilter::~TxFilter()
 }
 
 TxFilter::TxFilter(int maxwidth, int maxheight, int maxbpp, int options,
-                   int cachesize, wchar_t *path, wchar_t *ident,
-                   dispInfoFuncExt callback) :
+                   int cachesize, wchar_t *datapath, wchar_t *cachepath,
+                   wchar_t *ident, dispInfoFuncExt callback) :
   _numcore(1), _tex1(NULL), _tex2(NULL), _maxwidth(0), _maxheight(0),
-  _maxbpp(0), _options(0), _cacheSize(0), _ident(), _path(), _txQuantize(NULL),
-  _txTexCache(NULL), _txHiResCache(NULL), _txUtil(NULL), _txImage(NULL),
-  _initialized(false)
+  _maxbpp(0), _options(0), _cacheSize(0), _ident(), _datapath(), _cachepath(),
+  _txQuantize(NULL), _txTexCache(NULL), _txHiResCache(NULL), _txUtil(NULL),
+  _txImage(NULL), _initialized(false)
 {
   clear(); /* gcc does not allow the destructor to be called */
 
@@ -108,8 +127,10 @@ TxFilter::TxFilter(int maxwidth, int maxheight, int maxbpp, int options,
   /* TODO: validate options and do overrides here*/
 
   /* save path name */
-  if (path)
-    _path.assign(path);
+  if (datapath)
+    _datapath.assign(datapath);
+  if (cachepath)
+    _cachepath.assign(cachepath);
 
   /* save ROM name */
   if (ident && wcscmp(ident, L"DEFAULT") != 0)
@@ -145,11 +166,11 @@ TxFilter::TxFilter(int maxwidth, int maxheight, int maxbpp, int options,
 #endif
 
   /* initialize texture cache in bytes. 128Mb will do nicely in most cases */
-  _txTexCache = new TxTexCache(_options, _cacheSize, _path.c_str(), _ident.c_str(), callback);
+  _txTexCache = new TxTexCache(_options, _cacheSize, _datapath.c_str(), _cachepath.c_str(), _ident.c_str(), callback);
 
   /* hires texture */
 #if HIRES_TEXTURE
-  _txHiResCache = new TxHiResCache(_maxwidth, _maxheight, _maxbpp, _options, _path.c_str(), _ident.c_str(), callback);
+  _txHiResCache = new TxHiResCache(_maxwidth, _maxheight, _maxbpp, _options, _datapath.c_str(), _cachepath.c_str(), _ident.c_str(), callback);
 
   if (_txHiResCache->empty())
     _options &= ~HIRESTEXTURES_MASK;
@@ -261,6 +282,7 @@ TxFilter::filter(uint8 *src, int srcwidth, int srcheight, uint16 srcformat, uint
         uint8 *_texture = texture;
         uint8 *_tmptex  = tmptex;
 
+#if !defined(NO_FILTER_THREAD)
         unsigned int numcore = _numcore;
         unsigned int blkrow = 0;
         while (numcore > 1 && blkrow == 0) {
@@ -268,34 +290,38 @@ TxFilter::filter(uint8 *src, int srcwidth, int srcheight, uint16 srcformat, uint
           numcore--;
         }
         if (blkrow > 0 && numcore > 1) {
-          boost::thread *thrd[MAX_NUMCORE];
+          SDL_Thread *thrd[MAX_NUMCORE];
+          FilterParams params[MAX_NUMCORE];
           unsigned int i;
           int blkheight = blkrow << 2;
           unsigned int srcStride = (srcwidth * blkheight) << 2;
           unsigned int destStride = srcStride << scale_shift << scale_shift;
-          for (i = 0; i < numcore - 1; i++) {
-            thrd[i] = new boost::thread(boost::bind(filter_8888,
-                                                    (uint32*)_texture,
-                                                    srcwidth,
-                                                    blkheight,
-                                                    (uint32*)_tmptex,
-                                                    filter));
+          for (i = 0; i < numcore; i++) {
+            params[i].src = (uint32*) _texture;
+            params[i].srcwidth = srcwidth;
+            if (i == numcore - 1)
+                params[i].srcheight = srcheight - blkheight * i;
+            else
+                params[i].srcheight = blkheight;
+            params[i].dest = (uint32*) _tmptex;
+            params[i].filter = filter;
+#if SDL_VERSION_ATLEAST(2,0,0)
+            thrd[i] = SDL_CreateThread(FilterThreadFunc, "filter8888", &params[i]);
+#else
+            thrd[i] = SDL_CreateThread(FilterThreadFunc, &params[i]);
+#endif
             _texture += srcStride;
             _tmptex  += destStride;
           }
-          thrd[i] = new boost::thread(boost::bind(filter_8888,
-                                                  (uint32*)_texture,
-                                                  srcwidth,
-                                                  srcheight - blkheight * i,
-                                                  (uint32*)_tmptex,
-                                                  filter));
           for (i = 0; i < numcore; i++) {
-            thrd[i]->join();
-            delete thrd[i];
+            SDL_WaitThread(thrd[i], NULL);
           }
         } else {
           filter_8888((uint32*)_texture, srcwidth, srcheight, (uint32*)_tmptex, filter);
         }
+#else
+        filter_8888((uint32*)_texture, srcwidth, srcheight, (uint32*)_tmptex, filter);
+#endif
 
         if (filter & ENHANCEMENT_MASK) {
           srcwidth  <<= scale_shift;
@@ -614,6 +640,7 @@ TxFilter::dmptx(uint8 *src, int width, int height, int rowStridePixel, uint16 gf
   if (!(_options & DUMP_TEX))
     return 0;
 
+#ifdef DUMP_CACHE
   DBG_INFO(80, L"gfmt = %02x n64fmt = %02x\n", gfmt, n64fmt);
   DBG_INFO(80, L"hirestex: r_crc64:%08X %08X\n",
            (uint32)(r_crc64 >> 32), (uint32)(r_crc64 & 0xffffffff));
@@ -623,13 +650,14 @@ TxFilter::dmptx(uint8 *src, int width, int height, int rowStridePixel, uint16 gf
 
   src = _tex1;
 
-  if (!_path.empty() && !_ident.empty()) {
+  if (!_datapath.empty() && !_ident.empty()) {
     /* dump it to disk */
     FILE *fp = NULL;
     std::wstring tmpbuf;
+    wchar_t texid[36];
 
     /* create directories */
-    tmpbuf.assign(_path + L"/texture_dump");
+    tmpbuf.assign(_datapath + L"/texture_dump");
     if (!boost::filesystem::exists(tmpbuf) &&
         !boost::filesystem::create_directory(tmpbuf))
       return 0;
@@ -645,14 +673,14 @@ TxFilter::dmptx(uint8 *src, int width, int height, int rowStridePixel, uint16 gf
       return 0;
 
     if ((n64fmt >> 8) == 0x2) {
-      tmpbuf.append(boost::str(boost::wformat(L"/%ls#%08X#%01X#%01X#%08X_ciByRGBA.png")
-                               % _ident.c_str() % (uint32)(r_crc64 & 0xffffffff) % (n64fmt >> 8) % (n64fmt & 0xf) % (uint32)(r_crc64 >> 32)));
+      swprintf(texid, 36, L"%08X#%01X#%01X#%08X", (uint32)(r_crc64 & 0xffffffff), (uint32)(n64fmt >> 8), (uint32)(n64fmt & 0xf), (uint32)(r_crc64 >> 32));
+      tmpbuf.append(L"/" + _ident + L"#" + texid + L"_ciByRGBA.png");
     } else {
-      tmpbuf.append(boost::str(boost::wformat(L"/%ls#%08X#%01X#%01X_all.png")
-                               % _ident.c_str() % (uint32)(r_crc64 & 0xffffffff) % (n64fmt >> 8) % (n64fmt & 0xf)));
+      swprintf(texid, 36, L"%08X#%01X#%01X",  (uint32)(r_crc64 & 0xffffffff), (uint32)(n64fmt >> 8), (uint32)(n64fmt & 0xf));
+      tmpbuf.append(L"/" + _ident + L"#" + texid + L"_all.png");
     }
 
-#ifdef WIN32
+#ifdef _WIN32
     if ((fp = _wfopen(tmpbuf.c_str(), L"wb")) != NULL) {
 #else
     char cbuf[MAX_PATH];
@@ -664,6 +692,7 @@ TxFilter::dmptx(uint8 *src, int width, int height, int rowStridePixel, uint16 gf
       return 1;
     }
   }
+#endif
 
   return 0;
 }

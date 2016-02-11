@@ -37,7 +37,8 @@
 //
 //****************************************************************
 
-#include "Gfx #1.3.h"
+#include <SDL.h>
+#include "Gfx_1.3.h"
 #include "TexCache.h"
 #include "Combine.h"
 #include "Util.h"
@@ -148,13 +149,8 @@ void ClearCache ()
 }
 
 //****************************************************************
-extern "C" int asmTextureCRC(uint8_t *addr, int width, int height, int line);
-
 uint32_t textureCRC(uint8_t *addr, int width, int height, int line)
 {
-#ifdef OLDASM_asmTextureCRC
-  return asmTextureCRC(addr, width, height, line);
-#else
   uint32_t crc = 0;
   uint32_t *pixelpos;
   unsigned int i;
@@ -164,7 +160,7 @@ uint32_t textureCRC(uint8_t *addr, int width, int height, int line)
   for (; height; height--) {
     for (i = width; i; --i) {
       twopixel_crc = i * (uint64_t)(pixelpos[1] + pixelpos[0] + crc);
-      crc = (twopixel_crc >> 32) + twopixel_crc;
+      crc = (uint32_t) ((twopixel_crc >> 32) + twopixel_crc);
       pixelpos += 2;
     }
     crc = ((unsigned int)height * (uint64_t)crc >> 32) + height * crc;
@@ -172,7 +168,6 @@ uint32_t textureCRC(uint8_t *addr, int width, int height, int line)
   }
 
   return crc;
-#endif
 }
 // GetTexInfo - gets information for either t0 or t1, checks if in cache & fills tex_found
 
@@ -544,11 +539,10 @@ void TexCache ()
       if (ghq_dmptex_toggle_key) {
         DisplayLoadProgress(L"Texture dump - ON\n");
         ClearCache();
-        #pragma message( "TODO: should sleep here" )
-//        wxThread::Sleep(1000);
+        SDL_Delay(1000);
       } else {
         DisplayLoadProgress(L"Texture dump - OFF\n");
-//        wxThread::Sleep(1000);
+        SDL_Delay(1000);
       }
     }
   }
@@ -1061,8 +1055,8 @@ void LoadTex (int id, int tmu)
   cache->f_mirror_t = FALSE;
   cache->f_wrap_s = FALSE;
   cache->f_wrap_t = FALSE;
-  cache->is_hires_tex = FALSE;
 #ifdef TEXTURE_FILTER
+  cache->is_hires_tex = FALSE;
   cache->ricecrc    = texinfo[id].ricecrc;
 #endif
 

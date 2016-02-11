@@ -28,10 +28,6 @@
 #pragma warning(disable: 4786)
 #endif
 
-/* dump processed hirestextures to disk 
- * (0:disable, 1:enable) */
-#define DUMP_CACHE 1
-
 /* handle oversized textures by
  *   0: minification
  *   1: Glide64 style tiling
@@ -56,20 +52,21 @@
  * (0:disable, 1:enable, 2:extreme) */
 #define AGGRESSIVE_QUANTIZATION 1
 
-#include "TxHiResCache.h"
-#include "TxDbg.h"
 #include <zlib.h>
 #include <string>
 #include <SDL.h>
+#include "TxHiResCache.h"
+#include "TxDbg.h"
+#include "../Glide64/Gfx_1.3.h"
 
 TxHiResCache::~TxHiResCache()
 {
-#if DUMP_CACHE
+#ifdef DUMP_CACHE
   if ((_options & DUMP_HIRESTEXCACHE) && !_haveCache && !_abortLoad) {
     /* dump cache to disk */
     std::wstring filename = _ident + L"_HIRESTEXTURES.dat";
-    boost::filesystem::wpath cachepath(_path);
-    cachepath /= boost::filesystem::wpath(L"cache");
+    boost::filesystem::wpath cachepath(_cachepath);
+    cachepath /= boost::filesystem::wpath(L"glidehq");
     int config = _options & (HIRESTEXTURES_MASK|COMPRESS_HIRESTEX|COMPRESSION_MASK|TILE_HIRESTEX|FORCE16BPP_HIRESTEX|GZ_HIRESTEXCACHE|LET_TEXARTISTS_FLY);
 
     TxCache::save(cachepath.wstring().c_str(), filename.c_str(), config);
@@ -82,9 +79,9 @@ TxHiResCache::~TxHiResCache()
 }
 
 TxHiResCache::TxHiResCache(int maxwidth, int maxheight, int maxbpp, int options,
-                           const wchar_t *path, const wchar_t *ident,
-                           dispInfoFuncExt callback
-                           ) : TxCache((options & ~GZ_TEXCACHE), 0, path, ident, callback)
+                           const wchar_t *datapath, const wchar_t *cachepath,
+                           const wchar_t *ident, dispInfoFuncExt callback
+                           ) : TxCache((options & ~GZ_TEXCACHE), 0, datapath, cachepath, ident, callback)
 {
   _txImage = new TxImage();
   _txQuantize  = new TxQuantize();
@@ -100,18 +97,18 @@ TxHiResCache::TxHiResCache(int maxwidth, int maxheight, int maxbpp, int options,
   if (!(_options & COMPRESS_HIRESTEX))
     _options &= ~COMPRESSION_MASK;
 
-  if (_path.empty() || _ident.empty()) {
+  if (_cachepath.empty() || _ident.empty()) {
     _options &= ~DUMP_HIRESTEXCACHE;
     return;
   }
 
-#if DUMP_CACHE
+#ifdef DUMP_CACHE
   /* read in hires texture cache */
   if (_options & DUMP_HIRESTEXCACHE) {
     /* find it on disk */
     std::wstring filename = _ident + L"_HIRESTEXTURES.dat";
-    boost::filesystem::wpath cachepath(_path);
-    cachepath /= boost::filesystem::wpath(L"cache");
+    boost::filesystem::wpath cachepath(_cachepath);
+    cachepath /= boost::filesystem::wpath(L"glidehq");
     int config = _options & (HIRESTEXTURES_MASK|COMPRESS_HIRESTEX|COMPRESSION_MASK|TILE_HIRESTEX|FORCE16BPP_HIRESTEX|GZ_HIRESTEXCACHE|LET_TEXARTISTS_FLY);
 
     _haveCache = TxCache::load(cachepath.wstring().c_str(), filename.c_str(), config);
@@ -131,11 +128,11 @@ TxHiResCache::empty()
 boolean
 TxHiResCache::load(boolean replace) /* 0 : reload, 1 : replace partial */
 {
-  if (!_path.empty() && !_ident.empty()) {
+  if (!_datapath.empty() && !_ident.empty()) {
 
     if (!replace) TxCache::clear();
 
-    boost::filesystem::wpath dir_path(_path);
+    boost::filesystem::wpath dir_path(_datapath);
 
     switch (_options & HIRESTEXTURES_MASK) {
     case GHQ_HIRESTEXTURES:
@@ -185,7 +182,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
    *
    * I opted to use chdir in order to use fopen() for windows 9x.
    */
-#ifdef WIN32
+#ifdef _WIN32
   wchar_t curpath[MAX_PATH];
   GETCWD(MAX_PATH, curpath);
   CHDIR(dir_path.wstring().c_str());
@@ -193,8 +190,10 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
   char curpath[MAX_PATH];
   char cbuf[MAX_PATH];
   wcstombs(cbuf, dir_path.wstring().c_str(), MAX_PATH);
-  GETCWD(MAX_PATH, curpath);
-  CHDIR(cbuf);
+  if (GETCWD(MAX_PATH, curpath) == NULL)
+      ERRLOG("Error while retrieving working directory!");
+  if (CHDIR(cbuf) != 0)
+      ERRLOG("Error while changing current directory to '%s'!", cbuf);
 #endif
 
   /* NOTE: I could use the boost::wdirectory_iterator and boost::wpath
@@ -247,7 +246,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
     /* XXX case sensitivity fiasco!
      * files must use _a, _rgb, _all, _allciByRGBA, _ciByRGBA, _ci
      * and file extensions must be in lower case letters! */
-#ifdef WIN32
+#ifdef _WIN32
     {
       unsigned int i;
       for (i = 0; i < strlen(fname); i++) fname[i] = tolower(fname[i]);
@@ -264,7 +263,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
     /* XXX case sensitivity fiasco!
      * files must use _a, _rgb, _all, _allciByRGBA, _ciByRGBA, _ci
      * and file extensions must be in lower case letters! */
-#ifdef WIN32
+#ifdef _WIN32
     {
       unsigned int i;
       for (i = 0; i < strlen(fname); i++) fname[i] = tolower(fname[i]);
@@ -466,7 +465,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
      */
     if (pfname == strstr(fname, "_all.png") ||
         pfname == strstr(fname, "_all.dds") ||
-#ifdef WIN32
+#ifdef _WIN32
         pfname == strstr(fname, "_allcibyrgba.png") ||
         pfname == strstr(fname, "_allcibyrgba.dds") ||
         pfname == strstr(fname, "_cibyrgba.png") ||
@@ -861,7 +860,6 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
                                          * NOTE: texture size must be checked before expanding to pow2 size.
                                          */
           ) {
-        uint32 alpha = 0;
         int dataSize = 0;
         int compressionType = _options & COMPRESSION_MASK;
 
@@ -1083,7 +1081,8 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 
   }
 
-  CHDIR(curpath);
+  if (CHDIR(curpath) != 0)
+      ERRLOG("Error while changing current directory back to original path of '%s'!", curpath);
 
   return 1;
 }
