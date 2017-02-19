@@ -97,6 +97,7 @@ ifneq ("$(filter ppc macppc socppc powerpc,$(HOST_CPU))","")
   BIG_ENDIAN := 1
   PIC ?= 1
   NO_ASM := 1
+  NO_SSE := 1
   $(warning Architecture "$(HOST_CPU)" not officially supported.')
 endif
 ifneq ("$(filter ppc64 powerpc64,$(HOST_CPU))","")
