@@ -66,7 +66,7 @@ void FrameSkipper::update()
       _actualFrame = desiredFrame;
     }
   }
-  if (_initialTicks == 0) // skipType == AUTO, initializing
+  if (_initialTicks == 0) // initializing
   {
     // First frame, initialize auto-skip variables
     _initialTicks = SDL_GetTicks();
