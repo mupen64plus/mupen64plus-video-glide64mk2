@@ -68,6 +68,7 @@ ifeq ("$(patsubst MINGW%,MINGW,$(UNAME))","MINGW")
   PIC = 0
   BOOST_SUFFIX = -mt
   CPPFLAGS += -DNO_FILTER_THREAD
+  LDLIBS += -lglew32
 endif
 ifeq ("$(OS)","NONE")
   $(error OS type "$(UNAME)" not supported.  Please file bug report at 'http://code.google.com/p/mupen64plus/issues')
