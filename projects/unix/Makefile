@@ -68,7 +68,15 @@ ifeq ("$(patsubst MINGW%,MINGW,$(UNAME))","MINGW")
   PIC = 0
   BOOST_SUFFIX = -mt
   CPPFLAGS += -DNO_FILTER_THREAD
-  LDLIBS += -lglew32
+  ifeq ($(origin GLEW_CFLAGS) $(origin GLEW_LDLIBS), undefined undefined)
+    ifeq ($(shell $(PKG_CONFIG) --modversion glew 2>/dev/null),)
+      $(error No GLEW development libraries found!)
+    endif
+    GLEW_CFLAGS += $(shell $(PKG_CONFIG) --cflags glew)
+    GLEW_LDLIBS +=  $(shell $(PKG_CONFIG) --libs glew)
+  endif
+  CFLAGS += $(GLEW_CFLAGS)
+  LDLIBS += $(GLEW_LDLIBS)
 endif
 ifeq ("$(OS)","NONE")
   $(error OS type "$(UNAME)" not supported.  Please file bug report at 'http://code.google.com/p/mupen64plus/issues')
