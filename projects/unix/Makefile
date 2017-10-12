@@ -68,15 +68,6 @@ ifeq ("$(patsubst MINGW%,MINGW,$(UNAME))","MINGW")
   PIC = 0
   BOOST_SUFFIX = -mt
   CPPFLAGS += -DNO_FILTER_THREAD
-  ifeq ($(origin GLEW_CFLAGS) $(origin GLEW_LDLIBS), undefined undefined)
-    ifeq ($(shell $(PKG_CONFIG) --modversion glew 2>/dev/null),)
-      $(error No GLEW development libraries found!)
-    endif
-    GLEW_CFLAGS += $(shell $(PKG_CONFIG) --cflags glew)
-    GLEW_LDLIBS +=  $(shell $(PKG_CONFIG) --libs glew)
-  endif
-  CFLAGS += $(GLEW_CFLAGS)
-  LDLIBS += $(GLEW_LDLIBS)
 endif
 ifeq ("$(OS)","NONE")
   $(error OS type "$(UNAME)" not supported.  Please file bug report at 'http://code.google.com/p/mupen64plus/issues')
@@ -164,6 +155,13 @@ ifeq ($(ARCH_DETECTED), 64BITS_32)
   LDFLAGS += -Wl,-m,elf_i386
 endif
 
+ifeq ($(origin PKG_CONFIG), undefined)
+  PKG_CONFIG = $(CROSS_COMPILE)pkg-config
+  ifeq ($(shell which $(PKG_CONFIG) 2>/dev/null),)
+    $(error $(PKG_CONFIG) not found)
+  endif
+endif
+
 # set special flags per-system
 ifeq ($(OS), LINUX)
   # only export api symbols
@@ -174,7 +172,6 @@ ifeq ($(OS), OSX)
   #xcode-select has been around since XCode 3.0, i.e. OS X 10.5
   OSX_SDK_ROOT = $(shell xcode-select -print-path)/Platforms/MacOSX.platform/Developer/SDKs
   OSX_SDK_PATH = $(OSX_SDK_ROOT)/$(shell ls $(OSX_SDK_ROOT) | tail -1)
-
   ifeq ($(CPU), X86)
     LDFLAGS += -bundle -L/opt/local/lib
     CXXFLAGS += -stdlib=libc++
@@ -185,20 +182,22 @@ ifeq ($(OS), OSX)
       CFLAGS += -pipe -I /opt/local/include -mmmx -msse -fomit-frame-pointer -arch i686 -mmacosx-version-min=10.7 -isysroot $(OSX_SDK_PATH)
     endif
   endif
+  # use system zlib on OSX
+  ZLIB_LDLIBS += -lz
 endif
 ifeq ($(OS), FREEBSD)
   LDLIBS += -lc
 endif
-
-ifeq ($(origin PKG_CONFIG), undefined)
-  PKG_CONFIG = $(CROSS_COMPILE)pkg-config
-  ifeq ($(shell which $(PKG_CONFIG) 2>/dev/null),)
-    $(error $(PKG_CONFIG) not found)
+ifeq ($(OS), MINGW)
+  ifeq ($(origin GLEW_CFLAGS) $(origin GLEW_LDLIBS), undefined undefined)
+    ifeq ($(shell $(PKG_CONFIG) --modversion glew 2>/dev/null),)
+      $(error No GLEW development libraries found!)
+    endif
+    GLEW_CFLAGS += $(shell $(PKG_CONFIG) --cflags glew)
+    GLEW_LDLIBS +=  $(shell $(PKG_CONFIG) --libs glew)
   endif
-endif
-
-ifeq ($(OS), OSX) # use system zlib on OSX
-  ZLIB_LDLIBS += -lz
+  CFLAGS += $(GLEW_CFLAGS)
+  LDLIBS += $(GLEW_LDLIBS)
 endif
 
 ifeq ($(origin ZLIB_CFLAGS) $(origin ZLIB_LDLIBS), undefined undefined)
