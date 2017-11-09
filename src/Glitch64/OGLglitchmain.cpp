@@ -546,6 +546,16 @@ grSstWinOpen(
     display_warning("Your video card doesn't support GL_ARB_texture_mirrored_repeat extension");
   show_warning = 0;
 
+#if defined(_WIN32) && (defined(__MINGW32__) || defined(__MINGW64__))
+  /* dirty hack to work around SDL2's SDL_opengl.h GL_GLEXT_PROTOTYPES bug
+   * see also the other
+   * "defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)" regions
+   */
+  GLenum glewerr = glewInit();
+  if (GLEW_OK != glewerr)
+    return false;
+#endif // _WIN32
+
 #if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
   glActiveTextureARB = (PFNGLACTIVETEXTUREARBPROC)wglGetProcAddress("glActiveTextureARB");
   glMultiTexCoord2fARB = (PFNGLMULTITEXCOORD2FARBPROC)wglGetProcAddress("glMultiTexCoord2fARB");
