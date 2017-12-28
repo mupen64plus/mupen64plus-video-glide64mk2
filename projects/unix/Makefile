@@ -1,6 +1,6 @@
 #/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 # *   Mupen64plus-video-glide64mk2 - Makefile                               *
-# *   Mupen64Plus homepage: http://code.google.com/p/mupen64plus/           *
+# *   Mupen64Plus homepage: https://mupen64plus.org/                        *
 # *   Copyright (C) 2010 Jon Ring                                           *
 # *   Copyright (C) 2007-2009 Richard Goedeken                              *
 # *   Copyright (C) 2007-2008 DarkJeztr Tillin9                             *
