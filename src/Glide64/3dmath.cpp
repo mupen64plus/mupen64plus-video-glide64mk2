@@ -50,7 +50,7 @@ extern "C" {
 void calc_light (VERTEX *v)
 {
   float light_intensity = 0.0f;
-  register float color[3] = {rdp.light[rdp.num_lights].r, rdp.light[rdp.num_lights].g, rdp.light[rdp.num_lights].b};
+  float color[3] = {rdp.light[rdp.num_lights].r, rdp.light[rdp.num_lights].g, rdp.light[rdp.num_lights].b};
   for (wxUint32 l=0; l<rdp.num_lights; l++)
   {
     light_intensity = DotProduct (rdp.light_vector[l], v->vec);
@@ -155,16 +155,16 @@ void calc_sphere (VERTEX *v)
 #endif
 }
 
-float DotProductC(register float *v1, register float *v2)
+float DotProductC(float *v1, float *v2)
 {
-    register float result;
+    float result;
     result = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
     return(result);
 }
 
 void NormalizeVectorC(float *v)
 {
-    register float len;
+    float len;
     len = sqrtf(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
     if (len > 0.0f)
     {
@@ -191,7 +191,7 @@ void InverseTransformVectorC (float *src, float *dst, float mat[4][4])
 void MulMatricesC(float m1[4][4],float m2[4][4],float r[4][4])
 {
     float row[4][4];
-    register unsigned int i, j;
+    unsigned int i, j;
 
     for (i = 0; i < 4; i++)
         for (j = 0; j < 4; j++)
