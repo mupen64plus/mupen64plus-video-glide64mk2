@@ -236,12 +236,13 @@ void Rasterize(vertexi * vtx, int vertices, int dzdx)
       min_y = vtx->y;
       min_vtx = vtx;
     }
-    else
+    else {
       if(vtx->y > max_y) {
         max_y = vtx->y;
         max_vtx = vtx;
       }
-      vtx++;
+    }
+    vtx++;
   }
   
   // OK, now we know where in the array we should start and

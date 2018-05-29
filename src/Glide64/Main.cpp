@@ -1961,7 +1961,7 @@ EXPORT int CALL RomOpen (void)
   while (name[strlen(name)-1] == ' ')
     name[strlen(name)-1] = 0;
 
-  strncpy(rdp.RomName, name, sizeof(name));
+  strncpy(rdp.RomName, name, sizeof(rdp.RomName));
   ReadSpecialSettings (name);
   ClearCache ();
 
