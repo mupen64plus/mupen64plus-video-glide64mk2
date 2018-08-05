@@ -290,8 +290,8 @@ TxFilter::filter(uint8 *src, int srcwidth, int srcheight, uint16 srcformat, uint
           numcore--;
         }
         if (blkrow > 0 && numcore > 1) {
-          SDL_Thread *thrd[MAX_NUMCORE];
-          FilterParams params[MAX_NUMCORE];
+          SDL_Thread *thrd[numcore];
+          FilterParams params[numcore];
           unsigned int i;
           int blkheight = blkrow << 2;
           unsigned int srcStride = (srcwidth * blkheight) << 2;
