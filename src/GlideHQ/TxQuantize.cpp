@@ -1838,7 +1838,7 @@ TxQuantize::quantize(uint8* src, uint8* dest, int width, int height, uint16 srcf
       int blkheight = blkrow << 2;
       unsigned int srcStride = (width * blkheight) << (2 - bpp_shift);
       unsigned int destStride = srcStride << bpp_shift;
-      for (i = 0; i < numcore - 1; i++) {
+      for (i = 0; i < numcore; i++) {
           params[i].func = quantizer;
           params[i].src = (uint32*) src;
           params[i].dest = (uint32*) dest;
