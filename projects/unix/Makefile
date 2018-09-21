@@ -311,8 +311,6 @@ endif
 # set base program pointers and flags
 CC        = $(CROSS_COMPILE)gcc
 CXX       = $(CROSS_COMPILE)g++
-#CC        = $(CROSS_COMPILE)clang
-#CXX       = $(CROSS_COMPILE)clang++
 RM       ?= rm -f
 INSTALL  ?= install
 MKDIR ?= mkdir -p
