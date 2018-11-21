@@ -146,17 +146,17 @@ static void t3d_vertex(wxUint32 addr, wxUint32 v0, wxUint32 n)
     for (wxUint32 i=0; i < n; i+=16)
     {
       VERTEX *v = &rdp.vtx[v0 + (i>>4)];
-      x   = (float)((short*)gfx.RDRAM)[(((addr+i) >> 1) + 0)^1];
-      y   = (float)((short*)gfx.RDRAM)[(((addr+i) >> 1) + 1)^1];
-      z   = (float)((short*)gfx.RDRAM)[(((addr+i) >> 1) + 2)^1];
-      v->flags  = ((wxUint16*)gfx.RDRAM)[(((addr+i) >> 1) + 3)^1];
-      v->ou   = 2.0f * (float)((short*)gfx.RDRAM)[(((addr+i) >> 1) + 4)^1];
-      v->ov   = 2.0f * (float)((short*)gfx.RDRAM)[(((addr+i) >> 1) + 5)^1];
+      x   = (float)((short*)gfx.RDRAM)[SHORTADDR(((addr+i) >> 1) + 0)];
+      y   = (float)((short*)gfx.RDRAM)[SHORTADDR(((addr+i) >> 1) + 1)];
+      z   = (float)((short*)gfx.RDRAM)[SHORTADDR(((addr+i) >> 1) + 2)];
+      v->flags  = ((wxUint16*)gfx.RDRAM)[SHORTADDR(((addr+i) >> 1) + 3)];
+      v->ou   = 2.0f * (float)((short*)gfx.RDRAM)[SHORTADDR(((addr+i) >> 1) + 4)];
+      v->ov   = 2.0f * (float)((short*)gfx.RDRAM)[SHORTADDR(((addr+i) >> 1) + 5)];
       v->uv_scaled = 0;
-      v->r = ((wxUint8*)gfx.RDRAM)[(addr+i + 12)^3];
-      v->g = ((wxUint8*)gfx.RDRAM)[(addr+i + 13)^3];
-      v->b = ((wxUint8*)gfx.RDRAM)[(addr+i + 14)^3];
-      v->a    = ((wxUint8*)gfx.RDRAM)[(addr+i + 15)^3];
+      v->r = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+i + 12)];
+      v->g = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+i + 13)];
+      v->b = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+i + 14)];
+      v->a    = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+i + 15)];
 
       v->x = x*rdp.combined[0][0] + y*rdp.combined[1][0] + z*rdp.combined[2][0] + rdp.combined[3][0];
       v->y = x*rdp.combined[0][1] + y*rdp.combined[1][1] + z*rdp.combined[2][1] + rdp.combined[3][1];

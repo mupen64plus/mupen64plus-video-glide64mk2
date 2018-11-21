@@ -319,7 +319,7 @@ void microcheck ()
   char d;
   for (i=0; i<0x400000; i++)
   {
-    d = ((char*)gfx.RDRAM)[i^3];
+    d = ((char*)gfx.RDRAM)[BYTEADDR(i)];
     ucf.write (&d, 1);
   }
   ucf.close ();
@@ -407,7 +407,7 @@ static void copyWhiteToRDRAM()
         for(wxUint32 x = 0; x < rdp.ci_width; x++)
         {
             if(rdp.ci_size == 2)
-                ptr_dst[(x + y * rdp.ci_width) ^ 1] = 0xFFFF;
+                ptr_dst[SHORTADDR(x + y * rdp.ci_width)] = 0xFFFF;
             else
                 ptr_dst32[x + y * rdp.ci_width] = 0xFFFFFFFF;
         }
@@ -468,7 +468,7 @@ static void CopyFrameBuffer (GrBuffer_t buffer = GR_BUFFER_BACKBUFFER)
             c = (c&0xFFC0) | ((c&0x001F) << 1) | 1;
           }
           if (rdp.ci_size == 2)
-            ptr_dst[(x + y * width)^1] = c;
+            ptr_dst[SHORTADDR(x + y * width)] = c;
           else
             ptr_dst32[x + y * width] = RGBA16TO32(c);
         }
@@ -526,7 +526,7 @@ static void CopyFrameBuffer (GrBuffer_t buffer = GR_BUFFER_BACKBUFFER)
             if (read_alpha && c == 1)
               c = 0;
             if (rdp.ci_size <= 2)
-              ptr_dst[(x + y * width)^1] = c;
+              ptr_dst[SHORTADDR(x + y * width)] = c;
             else
               ptr_dst32[x + y * width] = RGBA16TO32(c);
           }
@@ -934,7 +934,7 @@ static void pm_palette_mod ()
   wxUint16 * dst = (wxUint16*)(gfx.RDRAM+rdp.cimg);
   for (int i = 0; i < 16; i++)
   {
-    dst[i^1] = (rdp.pal_8[i]&1) ? prim16 : env16;
+    dst[SHORTADDR(i)] = (rdp.pal_8[i]&1) ? prim16 : env16;
   }
   LRDP("Texrect palette modification\n");
 }
@@ -952,8 +952,8 @@ static void pd_zcopy ()
   {
     c = ptr_src[x];
     c = ((c<<8)&0xFF00) | (c >> 8);
-    ptr_dst[(ul_x+x)^1] = c;
-    //      FRDP("dst[%d]=%04lx \n", (x + ul_x)^1, c);
+    ptr_dst[SHORTADDR(ul_x+x)] = c;
+    //      FRDP("dst[%d]=%04lx \n", SHORTADDR(x + ul_x), c);
   }
 }
 
@@ -1663,14 +1663,14 @@ void load_palette (wxUint32 addr, wxUint16 start, wxUint16 count)
   wxUint16 *spal = (wxUint16*)(gfx.RDRAM + (addr & BMASK));
 #endif
 
+  addr >>= 1;
   for (wxUint16 i=start; i<end; i++)
   {
-    *(dpal++) = *(wxUint16 *)(gfx.RDRAM + (addr^2));
-    addr += 2;
-
+    *(dpal++) = ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr)];
 #ifdef TLUT_LOGGING
-    FRDP ("%d: %08lx\n", i, *(wxUint16 *)(gfx.RDRAM + (addr^2)));
+    FRDP ("%d: %08lx\n", i, ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr)]);
 #endif
+    addr++;
   }
 #ifdef TEXTURE_FILTER
   if (settings.ghq_hirs)
@@ -1795,7 +1795,7 @@ void setTBufTex(wxUint16 t_mem, wxUint32 cnt)
     } else {
       FRDP("rdp.aTBuffTex[%d]=0\n", i);
     }
-    if ((rdp.aTBuffTex[i] == 0 && rdp.aTBuffTex[i^1] != pTbufTex) || (rdp.aTBuffTex[i] && rdp.aTBuffTex[i]->t_mem >= t_mem && rdp.aTBuffTex[i]->t_mem < t_mem + cnt))
+    if ((rdp.aTBuffTex[i] == 0 && rdp.aTBuffTex[SHORTADDR(i)] != pTbufTex) || (rdp.aTBuffTex[i] && rdp.aTBuffTex[i]->t_mem >= t_mem && rdp.aTBuffTex[i]->t_mem < t_mem + cnt))
     {
       if (pTbufTex)
       {
@@ -2640,7 +2640,7 @@ static void rdp_settextureimage()
     if (rdp.timg.format == 0)
     {
       wxUint16 * t = (wxUint16*)(gfx.RDRAM+ucode5_texshiftaddr);
-      ucode5_texshift = t[ucode5_texshiftcount^1];
+      ucode5_texshift = t[SHORTADDR(ucode5_texshiftcount)];
       rdp.timg.addr += ucode5_texshift;
     }
     else
@@ -2944,7 +2944,7 @@ static void rdp_setcolorimage()
           {
             for (int x=0; x<width; x++)
             {
-              c = ((ptr_src[(x + y * width)^1]) >> 1) | 0x8000;
+              c = ((ptr_src[SHORTADDR(x + y * width)]) >> 1) | 0x8000;
               ptr_dst[x + y * width] = c;
             }
           }

@@ -178,6 +178,18 @@ extern float		  fps;
 extern wxUint32	  fps_count;
 #endif
 
+// macros for accessing bytes and shorts in sequential order on both
+// big-endian and little-endian machines. On little-endian computers,
+// the 32-bit words in the emulated RAM and ROM are byte-swapped for
+// fast word access. This forces us to read bytes in reverse order.
+#if defined(M64P_BIG_ENDIAN)
+    #define     BYTEADDR(x)  (x)
+    #define     SHORTADDR(x) (x)
+#else
+    #define     BYTEADDR(x)  ((x)^3)
+    #define     SHORTADDR(x) ((x)^1)
+#endif
+
 // rdram mask at 0x400000 bytes (bah, not right for majora's mask)
 //#define BMASK	0x7FFFFF
 extern unsigned long BMASK;

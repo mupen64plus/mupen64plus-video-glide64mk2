@@ -66,15 +66,15 @@ static void fb_bg_copy ()
     return;
 
   wxUint32 addr = segoffset(rdp.cmd1) >> 1;
-  wxUint8 imageFmt	= ((wxUint8 *)gfx.RDRAM)[(((addr+11)<<1)+0)^3];
-  wxUint8 imageSiz	= ((wxUint8 *)gfx.RDRAM)[(((addr+11)<<1)+1)^3];
+  wxUint8 imageFmt	= ((wxUint8 *)gfx.RDRAM)[BYTEADDR(((addr+11)<<1)+0)];
+  wxUint8 imageSiz	= ((wxUint8 *)gfx.RDRAM)[BYTEADDR(((addr+11)<<1)+1)];
   wxUint32 imagePtr	= segoffset(((wxUint32*)gfx.RDRAM)[(addr+8)>>1]);
   FRDP ("fb_bg_copy. fmt: %d, size: %d, imagePtr %08lx, main_ci: %08lx, cur_ci: %08lx \n", imageFmt, imageSiz, imagePtr, rdp.main_ci, rdp.frame_buffers[rdp.ci_count-1].addr);
 
   if (status == ci_main)
   {
-    wxUint16 frameW	= ((wxUint16 *)gfx.RDRAM)[(addr+3)^1] >> 2;
-    wxUint16 frameH	= ((wxUint16 *)gfx.RDRAM)[(addr+7)^1] >> 2;
+    wxUint16 frameW	= ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr+3)] >> 2;
+    wxUint16 frameH	= ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr+7)] >> 2;
     if ( (frameW == rdp.frame_buffers[rdp.ci_count-1].width) && (frameH == rdp.frame_buffers[rdp.ci_count-1].height) )
       rdp.main_ci_bg = imagePtr;
   }
@@ -132,13 +132,13 @@ static void fb_uc2_movemem()
   if ((rdp.cmd0 & 0xFF) == 8)
   {
     wxUint32 a = segoffset(rdp.cmd1) >> 1;
-    short scale_x = ((short*)gfx.RDRAM)[(a+0)^1] >> 2;
-    short trans_x = ((short*)gfx.RDRAM)[(a+4)^1] >> 2;
+    short scale_x = ((short*)gfx.RDRAM)[SHORTADDR(a+0)] >> 2;
+    short trans_x = ((short*)gfx.RDRAM)[SHORTADDR(a+4)] >> 2;
     COLOR_IMAGE & cur_fb = rdp.frame_buffers[rdp.ci_count-1];
     if ( abs((int)(scale_x + trans_x - cur_fb.width)) < 3)
     {
-      short scale_y = ((short*)gfx.RDRAM)[(a+1)^1] >> 2;
-      short trans_y = ((short*)gfx.RDRAM)[(a+5)^1] >> 2;
+      short scale_y = ((short*)gfx.RDRAM)[SHORTADDR(a+1)] >> 2;
+      short trans_y = ((short*)gfx.RDRAM)[SHORTADDR(a+5)] >> 2;
       wxUint32 height = scale_y + trans_y;
       if (height < rdp.scissor_o.lr_y)
         cur_fb.height = height;

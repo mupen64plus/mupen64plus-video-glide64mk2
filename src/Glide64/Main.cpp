@@ -1905,7 +1905,7 @@ EXPORT int CALL RomOpen (void)
 
   /* cxd4 -- Glide64 tries to predict PAL scaling based on the ROM header. */
   region = OS_TV_TYPE_NTSC; /* Invalid region codes are probably NTSC betas. */
-  switch (gfx.HEADER[0x3E ^ 3])
+  switch (gfx.HEADER[BYTEADDR(0x3E)])
   {
      case 'A': /* generic NTSC, not documented, used by 1080 Snowboarding */
         region = OS_TV_TYPE_NTSC; break;
@@ -1954,7 +1954,7 @@ EXPORT int CALL RomOpen (void)
 
   // get the name of the ROM
   for (int i=0; i<20; i++)
-    name[i] = gfx.HEADER[(32+i)^3];
+    name[i] = gfx.HEADER[BYTEADDR(32+i)];
   name[20] = 0;
 
   // remove all trailing spaces

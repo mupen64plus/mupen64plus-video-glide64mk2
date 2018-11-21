@@ -242,7 +242,7 @@ static void DrawFrameBufferToScreen256(FB_TO_SCREEN_INFO & fb_info)
         {
           for (wxUint32 x=0; x < cur_width; x++)
           {
-            idx = (x+256*w+(y+256*h)*fb_info.width)^1;
+            idx = SHORTADDR(x+256*w+(y+256*h)*fb_info.width);
             if (idx >= bound)
               break;
             c = src[idx];
@@ -355,7 +355,7 @@ bool DrawFrameBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
     {
       for (wxUint32 x=0; x < width; x++)
       {
-        idx = (x+y*fb_info.width)^1;
+        idx = SHORTADDR(x+y*fb_info.width);
         if (idx >= bound)
           break;
         c = src[idx];
@@ -472,7 +472,7 @@ static void DrawDepthBufferToScreen256(FB_TO_SCREEN_INFO & fb_info)
       {
         for (wxUint32 x=0; x < cur_width; x++)
         {
-          *(dst++) = rdp.pal_8[src[(x+256*w+(y+256*h)*fb_info.width)^1]>>8];
+          *(dst++) = rdp.pal_8[src[SHORTADDR(x+256*w+(y+256*h)*fb_info.width)]>>8];
         }
         dst += cur_tail;
       }
@@ -618,7 +618,7 @@ void DrawDepthBufferToScreen(FB_TO_SCREEN_INFO & fb_info)
   {
     for (wxUint32 x=0; x < width; x++)
     {
-      *(dst++) = rdp.pal_8[src[(x+y*fb_info.width)^1]>>8];
+      *(dst++) = rdp.pal_8[src[SHORTADDR(x+y*fb_info.width)]>>8];
     }
     dst += texwidth-width;
   }

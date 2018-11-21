@@ -138,9 +138,9 @@ static void uc5_vertex ()
   {
     start = (i-first) * 10;
     VERTEX *v = &rdp.vtx[i];
-    x   = (float)((short*)gfx.RDRAM)[(((addr+start) >> 1) + 0)^1];
-    y   = (float)((short*)gfx.RDRAM)[(((addr+start) >> 1) + 1)^1];
-    z   = (float)((short*)gfx.RDRAM)[(((addr+start) >> 1) + 2)^1];
+    x   = (float)((short*)gfx.RDRAM)[SHORTADDR(((addr+start) >> 1) + 0)];
+    y   = (float)((short*)gfx.RDRAM)[SHORTADDR(((addr+start) >> 1) + 1)];
+    z   = (float)((short*)gfx.RDRAM)[SHORTADDR(((addr+start) >> 1) + 2)];
 
     v->x = x*rdp.dkrproj[prj][0][0] + y*rdp.dkrproj[prj][1][0] + z*rdp.dkrproj[prj][2][0] + rdp.dkrproj[prj][3][0];
     v->y = x*rdp.dkrproj[prj][0][1] + y*rdp.dkrproj[prj][1][1] + z*rdp.dkrproj[prj][2][1] + rdp.dkrproj[prj][3][1];
@@ -173,10 +173,10 @@ static void uc5_vertex ()
     if (v->w < 0.1f) v->scr_off |= 16;
     if (fabs(v->z_w) > 1.0) v->scr_off |= 32;
 
-    v->r = ((wxUint8*)gfx.RDRAM)[(addr+start + 6)^3];
-    v->g = ((wxUint8*)gfx.RDRAM)[(addr+start + 7)^3];
-    v->b = ((wxUint8*)gfx.RDRAM)[(addr+start + 8)^3];
-    v->a = ((wxUint8*)gfx.RDRAM)[(addr+start + 9)^3];
+    v->r = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+start + 6)];
+    v->g = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+start + 7)];
+    v->b = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+start + 8)];
+    v->a = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+start + 9)];
     CalculateFog (v);
 
 #ifdef EXTREME_LOGGING
