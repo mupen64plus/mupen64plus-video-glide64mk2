@@ -116,7 +116,7 @@ static void uc2_vertex ()
   rdp.vn = n = (rdp.cmd0 >> 12) & 0xFF;
   rdp.v0 = v0 = ((rdp.cmd0 >> 1) & 0x7F) - n;
 
-  FRDP ("uc2:vertex n: %d, v0: %d, from: %08lx\n", n, v0, addr);
+  FRDP ("uc2:vertex n: %d, v0: %d, from: %08x\n", n, v0, addr);
 
   if (v0 < 0)
   {
@@ -222,7 +222,7 @@ static void uc2_modifyvtx ()
   wxUint8 where = (wxUint8)((rdp.cmd0 >> 16) & 0xFF);
   wxUint16 vtx = (wxUint16)((rdp.cmd0 >> 1) & 0xFFFF);
 
-  FRDP ("uc2:modifyvtx: vtx: %d, where: 0x%02lx, val: %08lx - ", vtx, where, rdp.cmd1);
+  FRDP ("uc2:modifyvtx: vtx: %d, where: 0x%02x, val: %08x - ", vtx, where, rdp.cmd1);
   uc0_modifyvtx(where, vtx, rdp.cmd1);
 }
 
@@ -255,7 +255,7 @@ static void uc2_culldl ()
     //*/
 
 #ifdef EXTREME_LOGGING
-    FRDP (" v[%d] = (%02f, %02f, %02f, 0x%02lx)\n", i, rdp.vtx[i].x, rdp.vtx[i].y, rdp.vtx[i].w, rdp.vtx[i].scr_off);
+    FRDP (" v[%d] = (%02f, %02f, %02f, 0x%02x)\n", i, rdp.vtx[i].x, rdp.vtx[i].y, rdp.vtx[i].w, rdp.vtx[i].scr_off);
 #endif
 
     cond |= (~rdp.vtx[i].scr_off) & 0x1F;
@@ -389,7 +389,7 @@ static void uc2_dma_io ()
 
 static void uc2_pop_matrix ()
 {
-  FRDP ("uc2:pop_matrix %08lx, %08lx\n", rdp.cmd0, rdp.cmd1);
+  FRDP ("uc2:pop_matrix %08x, %08x\n", rdp.cmd0, rdp.cmd1);
 
   // Just pop the modelview matrix
   modelview_pop (rdp.cmd1 >> 6);
@@ -405,12 +405,12 @@ static void uc2_geom_mode ()
     ((rdp.cmd1 & 0x00000600) << 3) |
     ((rdp.cmd1 & 0x00200000) >> 12);
 
-  FRDP("uc2:geom_mode c:%08lx, s:%08lx ", clr_mode, set_mode);
+  FRDP("uc2:geom_mode c:%08x, s:%08x ", clr_mode, set_mode);
 
   rdp.geom_mode &= clr_mode;
   rdp.geom_mode |= set_mode;
 
-  FRDP ("result:%08lx\n", rdp.geom_mode);
+  FRDP ("result:%08x\n", rdp.geom_mode);
 
   if (rdp.geom_mode & 0x00000001) // Z-Buffer enable
   {
@@ -531,8 +531,8 @@ static void uc2_matrix ()
     break;
 
   default:
-    FRDP_E ("Unknown matrix command, %02lx", command);
-    FRDP ("Unknown matrix command, %02lx", command);
+    FRDP_E ("Unknown matrix command, %02x", command);
+    FRDP ("Unknown matrix command, %02x", command);
   }
 
 #ifdef EXTREME_LOGGING
@@ -613,12 +613,12 @@ static void uc2_moveword ()
       rdp.clip_ratio = sqrt((float)rdp.cmd1);
       rdp.update |= UPDATE_VIEWPORT;
     }
-    FRDP ("mw_clip %08lx, %08lx\n", rdp.cmd0, rdp.cmd1);
+    FRDP ("mw_clip %08x, %08x\n", rdp.cmd0, rdp.cmd1);
     break;
 
   case 0x06:  // moveword SEGMENT
     {
-      FRDP ("SEGMENT %08lx -> seg%d\n", data, offset >> 2);
+      FRDP ("SEGMENT %08x -> seg%d\n", data, offset >> 2);
       if ((data&BMASK)<BMASK)
         rdp.segment[(offset >> 2) & 0xF] = data;
     }
@@ -641,7 +641,7 @@ static void uc2_moveword ()
   case 0x0a:  // moveword LIGHTCOL
     {
       int n = offset / 24;
-      FRDP ("lightcol light:%d, %08lx\n", n, data);
+      FRDP ("lightcol light:%d, %08x\n", n, data);
 
       rdp.light[n].r = (float)((data >> 24) & 0xFF) / 255.0f;
       rdp.light[n].g = (float)((data >> 16) & 0xFF) / 255.0f;
@@ -660,8 +660,8 @@ static void uc2_moveword ()
     break;
 
   default:
-    FRDP_E("uc2:moveword unknown (index: 0x%08lx, offset 0x%08lx)\n", index, offset);
-    FRDP ("unknown (index: 0x%08lx, offset 0x%08lx)\n", index, offset);
+    FRDP_E("uc2:moveword unknown (index: 0x%08x, offset 0x%08x)\n", index, offset);
+    FRDP ("unknown (index: 0x%08x, offset 0x%08x)\n", index, offset);
   }
 }
 
@@ -700,7 +700,7 @@ static void uc2_movemem ()
 
       rdp.update |= UPDATE_VIEWPORT;
 
-      FRDP ("viewport scale(%d, %d, %d), trans(%d, %d, %d), from:%08lx\n", scale_x, scale_y, scale_z,
+      FRDP ("viewport scale(%d, %d, %d), trans(%d, %d, %d), from:%08x\n", scale_x, scale_y, scale_z,
         trans_x, trans_y, trans_z, a);
     }
     break;
@@ -797,7 +797,7 @@ static void uc2_dlist_cnt ()
 {
   wxUint32 addr = segoffset(rdp.cmd1) & BMASK;
   int count = rdp.cmd0 & 0x000000FF;
-  FRDP ("dl_count - addr: %08lx, count: %d\n", addr, count);
+  FRDP ("dl_count - addr: %08x, count: %d\n", addr, count);
   if (addr == 0)
     return;
 

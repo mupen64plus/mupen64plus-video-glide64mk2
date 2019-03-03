@@ -59,7 +59,7 @@ static void uc8_vertex ()
 	rdp.vn = n = (rdp.cmd0 >> 12) & 0xFF;
 	rdp.v0 = v0 = ((rdp.cmd0 >> 1) & 0x7F) - n;
 
-	FRDP ("uc8:vertex n: %d, v0: %d, from: %08lx\n", n, v0, addr);
+	FRDP ("uc8:vertex n: %d, v0: %d, from: %08x\n", n, v0, addr);
 
 	if (v0 < 0)
 	{
@@ -129,7 +129,7 @@ static void uc8_vertex ()
 		v->g = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+i + 13)];
 		v->b = ((wxUint8*)gfx.RDRAM)[BYTEADDR(addr+i + 14)];
 #ifdef EXTREME_LOGGING
-		FRDP ("r: %02lx, g: %02lx, b: %02lx, a: %02lx\n", v->r, v->g, v->b, v->a);
+		FRDP ("r: %02x, g: %02x, b: %02x, a: %02x\n", v->r, v->g, v->b, v->a);
 #endif
 
 		if ((rdp.geom_mode & 0x00020000))
@@ -153,8 +153,8 @@ static void uc8_vertex ()
   				FRDP ("calc sphere: v%d - u: %f, v: %f\n", i>>4, v->ou, v->ov);
 #endif
   			}
-			//     FRDP("calc light. r: 0x%02lx, g: 0x%02lx, b: 0x%02lx, nx: %.3f, ny: %.3f, nz: %.3f\n", v->r, v->g, v->b, v->vec[0], v->vec[1], v->vec[2]);
-			FRDP("v[%d] calc light. r: 0x%02lx, g: 0x%02lx, b: 0x%02lx\n", i>>4, v->r, v->g, v->b);
+			//     FRDP("calc light. r: 0x%02x, g: 0x%02x, b: 0x%02x, nx: %.3f, ny: %.3f, nz: %.3f\n", v->r, v->g, v->b, v->vec[0], v->vec[1], v->vec[2]);
+			FRDP("v[%d] calc light. r: 0x%02x, g: 0x%02x, b: 0x%02x\n", i>>4, v->r, v->g, v->b);
 			float color[3] = {rdp.light[rdp.num_lights].r, rdp.light[rdp.num_lights].g, rdp.light[rdp.num_lights].b};
 			FRDP("ambient light. r: %f, g: %f, b: %f\n", color[0], color[1], color[2]);
 			float light_intensity = 0.0f;
@@ -227,7 +227,7 @@ static void uc8_vertex ()
 			v->g = (wxUint8)(((float)v->g)*color[1]);
 			v->b = (wxUint8)(((float)v->b)*color[2]);
 #ifdef EXTREME_LOGGING
-		FRDP("color after light: r: 0x%02lx, g: 0x%02lx, b: 0x%02lx\n", v->r, v->g, v->b);
+		FRDP("color after light: r: 0x%02x, g: 0x%02x, b: 0x%02x\n", v->r, v->g, v->b);
 #endif
 		}
   }
@@ -258,12 +258,12 @@ static void uc8_moveword ()
       rdp.clip_ratio = sqrt((float)rdp.cmd1);
       rdp.update |= UPDATE_VIEWPORT;
     }
-		FRDP ("mw_clip %08lx, %08lx\n", rdp.cmd0, rdp.cmd1);
+		FRDP ("mw_clip %08x, %08x\n", rdp.cmd0, rdp.cmd1);
 		break;
 
 	case 0x06:  // moveword SEGMENT
 		{
-			FRDP ("SEGMENT %08lx -> seg%d\n", data, offset >> 2);
+			FRDP ("SEGMENT %08x -> seg%d\n", data, offset >> 2);
 			rdp.segment[(offset >> 2) & 0xF] = data;
 		}
 		break;
@@ -289,7 +289,7 @@ static void uc8_moveword ()
 		{
 			wxUint8 n = offset >> 2;
 
-			FRDP ("coord mod:%d, %08lx\n", n, data);
+			FRDP ("coord mod:%d, %08x\n", n, data);
 			if (rdp.cmd0&8)
 				return;
 			wxUint32 idx = (rdp.cmd0>>1)&3;
@@ -326,8 +326,8 @@ static void uc8_moveword ()
 		break;
 
 	default:
-		FRDP_E("uc8:moveword unknown (index: 0x%08lx, offset 0x%08lx)\n", index, offset);
-		FRDP ("unknown (index: 0x%08lx, offset 0x%08lx)\n", index, offset);
+		FRDP_E("uc8:moveword unknown (index: 0x%08x, offset 0x%08x)\n", index, offset);
+		FRDP ("unknown (index: 0x%08x, offset 0x%08x)\n", index, offset);
   }
 }
 
@@ -359,7 +359,7 @@ static void uc8_movemem ()
 
 			rdp.update |= UPDATE_VIEWPORT;
 
-			FRDP ("viewport scale(%d, %d), trans(%d, %d), from:%08lx\n", scale_x, scale_y,
+			FRDP ("viewport scale(%d, %d), trans(%d, %d), from:%08x\n", scale_x, scale_y,
 				trans_x, trans_y, a);
 		}
 		break;
@@ -417,7 +417,7 @@ static void uc8_movemem ()
 #ifdef EXTREME_LOGGING
 			for (int t=0; t < 24; t++)
 			{
-				FRDP ("light[%d] = 0x%04lx \n", t, ((wxUint16*)gfx.RDRAM)[SHORTADDR(a+t)]);
+				FRDP ("light[%d] = 0x%04x \n", t, ((wxUint16*)gfx.RDRAM)[SHORTADDR(a+t)]);
 			}
 #endif
 		}
@@ -426,7 +426,7 @@ static void uc8_movemem ()
 	case 14: //Normales
 		{
 			uc8_normale_addr = segoffset(rdp.cmd1);
-			FRDP ("Normale - addr: %08lx\n", uc8_normale_addr);
+			FRDP ("Normale - addr: %08x\n", uc8_normale_addr);
 #ifdef EXTREME_LOGGING
       int i;
 			for (i = 0; i < 32; i++)
@@ -438,7 +438,7 @@ static void uc8_movemem ()
 			wxUint32 a = uc8_normale_addr >> 1;
 			for (i = 0; i < 32; i++)
 			{
-				FRDP ("n[%d] = 0x%04lx \n", i, ((wxUint16*)gfx.RDRAM)[SHORTADDR(a+i)]);
+				FRDP ("n[%d] = 0x%04x \n", i, ((wxUint16*)gfx.RDRAM)[SHORTADDR(a+i)]);
 			}
 #endif
 		}

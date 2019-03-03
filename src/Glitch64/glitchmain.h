@@ -134,7 +134,6 @@ extern "C" {
 #endif // _WIN32
 #include "glide.h"
 
-void display_warning(const unsigned char *text, ...) ATTR_FMT(1,2);
 void display_warning(const char *text, ...) ATTR_FMT(1,2);
 void init_geometry();
 void init_textures();

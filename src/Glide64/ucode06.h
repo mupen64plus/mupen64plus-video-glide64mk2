@@ -747,7 +747,7 @@ static void uc6_read_background_data (DRAWIMAGE & d, bool bReadScale)
   int imageYorig= ((int *)gfx.RDRAM)[(addr+16)>>1] >> 5;
   rdp.last_bg = d.imagePtr;
 
-  FRDP ("imagePtr: %08lx\n", d.imagePtr);
+  FRDP ("imagePtr: %08x\n", d.imagePtr);
   FRDP ("frameX: %f, frameW: %d, frameY: %f, frameH: %d\n", d.frameX, d.frameW, d.frameY, d.frameH);
   FRDP ("imageX: %d, imageW: %d, imageY: %d, imageH: %d\n", d.imageX, d.imageW, d.imageY, d.imageH);
   FRDP ("imageYorig: %d, scaleX: %f, scaleY: %f\n", imageYorig, d.scaleX, d.scaleY);
@@ -1058,7 +1058,7 @@ static void uc6_obj_rectangle ()
 
   if (d.imageAdrs > 4096)
   {
-    FRDP("tmem: %08lx is out of bounds! return\n", d.imageAdrs);
+    FRDP("tmem: %08x is out of bounds! return\n", d.imageAdrs);
     return;
   }
   if (!rdp.s2dex_tex_loaded)
@@ -1367,7 +1367,7 @@ static void uc6_obj_loadtxtr ()
     wxUint16  phead             = ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr + 4)] - 256;        // 4
     wxUint16  pnum              = ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr + 5)] + 1;          // 5
 
-    FRDP ("palette addr: %08lx, start: %d, num: %d\n", image, phead, pnum);
+    FRDP ("palette addr: %08x, start: %d, num: %d\n", image, phead, pnum);
     load_palette (image, phead, pnum);
   }
   else if (type == 0x00001033) {        // TxtrBlock
@@ -1376,7 +1376,7 @@ static void uc6_obj_loadtxtr ()
     wxUint16  tsize             = ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr + 5)];      // 5
     wxUint16  tline             = ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr + 6)];      // 6
 
-    FRDP ("addr: %08lx, tmem: %08lx, size: %d\n", image, tmem, tsize);
+    FRDP ("addr: %08x, tmem: %08x, size: %d\n", image, tmem, tsize);
     rdp.timg.addr = image;
     rdp.timg.width = 1;
     rdp.timg.size = 1;
@@ -1394,7 +1394,7 @@ static void uc6_obj_loadtxtr ()
     wxUint16  twidth    = ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr + 5)];      // 5
     wxUint16  theight   = ((wxUint16 *)gfx.RDRAM)[SHORTADDR(addr + 6)];      // 6
 
-    FRDP ("tile addr: %08lx, tmem: %08lx, twidth: %d, theight: %d\n", image, tmem, twidth, theight);
+    FRDP ("tile addr: %08x, tmem: %08x, twidth: %d, theight: %d\n", image, tmem, twidth, theight);
 
     int line = (twidth + 1) >> 2;
 
@@ -1413,8 +1413,8 @@ static void uc6_obj_loadtxtr ()
   }
   else
   {
-    FRDP ("UNKNOWN (0x%08lx)\n", type);
-    FRDP_E ("uc6:obj_loadtxtr UNKNOWN (0x%08lx)\n", type);
+    FRDP ("UNKNOWN (0x%08x)\n", type);
+    FRDP_E ("uc6:obj_loadtxtr UNKNOWN (0x%08x)\n", type);
   }
 }
 
@@ -1541,7 +1541,7 @@ void uc6_sprite2d ()
         stride      *= scaleY;
         d.scaleY        = 1.0f;
       }
-      FRDP ("imagePtr: %08lx\n", d.imagePtr);
+      FRDP ("imagePtr: %08x\n", d.imagePtr);
       FRDP ("frameX: %f, frameW: %d, frameY: %f, frameH: %d\n", d.frameX, d.frameW, d.frameY, d.frameH);
       FRDP ("imageX: %d, imageW: %d, imageY: %d, imageH: %d\n", d.imageX, d.imageW, d.imageY, d.imageH);
       FRDP ("imageFmt: %d, imageSiz: %d, imagePal: %d, imageStride: %d\n", d.imageFmt, d.imageSiz, d.imagePal, stride);

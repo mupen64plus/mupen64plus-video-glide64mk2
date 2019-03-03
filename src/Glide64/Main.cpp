@@ -1071,7 +1071,7 @@ void DisplayLoadProgress(const wchar_t *format, ...)
     output (382, 380, 1, "LOADING TEXTURES. PLEASE WAIT...");
     int len = min (strlen(buf)*8, 1024);
     x = (1024-len)/2.0f;
-    output (x, 360, 1, buf);
+    output (x, 360, 1, "%s", buf);
     grBufferSwap (0);
     grColorMask (FXTRUE, FXTRUE);
     grBufferClear (0, 0, 0xFFFF);
@@ -2100,7 +2100,7 @@ EXPORT void CALL UpdateScreen (void)
 #endif
   char out_buf[128];
   sprintf (out_buf, "UpdateScreen (). Origin: %08x, Old origin: %08x, width: %d\n", *gfx.VI_ORIGIN_REG, rdp.vi_org_reg, *gfx.VI_WIDTH_REG);
-  VLOG (out_buf);
+  VLOG ("%s", out_buf);
   LRDP(out_buf);
 
   wxUint32 width = (*gfx.VI_WIDTH_REG) << 1;
@@ -2270,7 +2270,7 @@ void newSwapBuffers()
           else
             sprintf (out_buf, " %.4s %s", asctime(cur_time) + 12, ampm);
         }
-        output ((float)(settings.res_x - 68), y, 0, out_buf, 0);
+        output ((float)(settings.res_x - 68), y, 0, "%s", out_buf);
       }
     //hotkeys
     if (CheckKeyPressed(G64_VK_BACK, 0x0001))
@@ -2336,7 +2336,7 @@ void newSwapBuffers()
         }
         hotkey_info.hk_filtering--;
       }
-      output (120.0f, (float)settings.res_y, 0, message, 0);
+      output (120.0f, (float)settings.res_y, 0, "%s", message);
     }
   }
 

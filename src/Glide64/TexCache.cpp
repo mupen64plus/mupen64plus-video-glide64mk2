@@ -306,7 +306,7 @@ void GetTexInfo (int id, int tile)
   }
 
   LRDP(" | | |-+ Texture approved:\n");
-  FRDP (" | | | |- tmem: %08lx\n", rdp.tiles[tile].t_mem);
+  FRDP (" | | | |- tmem: %08x\n", rdp.tiles[tile].t_mem);
   FRDP (" | | | |- load width: %d\n", width);
   FRDP (" | | | |- load height: %d\n", height);
   FRDP (" | | | |- actual width: %d\n", rdp.tiles[tile].width);
@@ -411,7 +411,7 @@ void GetTexInfo (int id, int tile)
       crc += rdp.pal_256_crc;
   }
 
-  FRDP ("Done.  CRC is: %08lx.\n", crc);
+  FRDP ("Done.  CRC is: %08x.\n", crc);
 
   wxUint32 flags = (rdp.tiles[tile].clamp_s << 23) | (rdp.tiles[tile].mirror_s << 22) |
     (rdp.tiles[tile].mask_s << 18) | (rdp.tiles[tile].clamp_t << 17) |
@@ -519,6 +519,8 @@ static void SelectTBuffTex(TBUFF_COLOR_IMAGE * pTBuffTex)
   grTexSource(pTBuffTex->tile, pTBuffTex->tex_addr, GR_MIPMAPLEVELMASK_BOTH, &(pTBuffTex->info) );
 }
 
+extern void DisplayLoadProgress(const wchar_t *format, ...);
+
 //****************************************************************
 // TexCache - does texture loading after combiner is set
 int SwapTextureBuffer();
@@ -534,14 +536,13 @@ void TexCache ()
     }
     /* Turn on texture dump */
     else if (CheckKeyPressed(G64_VK_D, 0x0001)) {
-      extern void DisplayLoadProgress(const wchar_t *format, ...) ATTR_FMT(1,2);
       ghq_dmptex_toggle_key = !ghq_dmptex_toggle_key;
       if (ghq_dmptex_toggle_key) {
-        DisplayLoadProgress(L"Texture dump - ON\n");
+        DisplayLoadProgress(L"Texture dump - ON\n",0);
         ClearCache();
         SDL_Delay(1000);
       } else {
-        DisplayLoadProgress(L"Texture dump - OFF\n");
+        DisplayLoadProgress(L"Texture dump - OFF\n",0);
         SDL_Delay(1000);
       }
     }
@@ -1347,7 +1348,7 @@ void LoadTex (int id, int tmu)
     g64_crc = CRC32( g64_crc, &cache->mod_factor, 4 );
 
     cache->ricecrc = ext_ghq_checksum(addr, tile_width, tile_height, (unsigned short)(rdp.tiles[td].format << 8 | rdp.tiles[td].size), bpl, paladdr);
-    FRDP("CI RICE CRC. format: %d, size: %d, CRC: %08lx, PalCRC: %08lx\n", rdp.tiles[td].format, rdp.tiles[td].size, (wxUint32)(cache->ricecrc&0xFFFFFFFF), (wxUint32)(cache->ricecrc>>32));
+    FRDP("CI RICE CRC. format: %d, size: %d, CRC: %08x, PalCRC: %08x\n", rdp.tiles[td].format, rdp.tiles[td].size, (wxUint32)(cache->ricecrc&0xFFFFFFFF), (wxUint32)(cache->ricecrc>>32));
     if (ext_ghq_hirestex((uint64)g64_crc, cache->ricecrc, palette, &ghqTexInfo))
     {
       cache->is_hires_tex = ghqTexInfo.is_hires_tex;

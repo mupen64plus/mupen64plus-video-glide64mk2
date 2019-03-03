@@ -252,7 +252,7 @@ static void uc9_fmlight ()
   int mid = rdp.cmd0&0xFF;
   rdp.num_lights = 1 + ((rdp.cmd1>>12)&0xFF);
   wxUint32 a = -1024 + (rdp.cmd1&0xFFF);
-  FRDP ("uc9:fmlight matrix: %d, num: %d, dmem: %04lx\n", mid, rdp.num_lights, a);
+  FRDP ("uc9:fmlight matrix: %d, num: %d, dmem: %04x\n", mid, rdp.num_lights, a);
 
   M44 *m = NULL;
   switch (mid) {
@@ -320,7 +320,7 @@ static void uc9_light ()
   wxUint32 tdest = -1024 + (rdp.cmd1&0xFFF);
   int use_material = (csrs != 0x0ff0);
   tdest >>= 1;
-  FRDP ("uc9:light n: %d, colsrs: %04lx, normales: %04lx, coldst: %04lx, texdst: %04lx\n", num, csrs, nsrs, cdest, tdest);
+  FRDP ("uc9:light n: %d, colsrs: %04x, normales: %04x, coldst: %04x, texdst: %04x\n", num, csrs, nsrs, cdest, tdest);
   VERTEX v;
   for (wxUint32 i = 0; i < num; i++)
   {
@@ -466,7 +466,7 @@ static void uc9_mult_mpmtx ()
   int num = 1+ ((rdp.cmd1>>24)&0xFF);
   int src = -1024 + ((rdp.cmd1>>12)&0xFFF);
   int dst = -1024 + (rdp.cmd1&0xFFF);
-  FRDP ("uc9:mult_mpmtx from: %04lx  to: %04lx n: %d\n", src, dst, num);
+  FRDP ("uc9:mult_mpmtx from: %04x  to: %04x n: %d\n", src, dst, num);
   short * saddr = (short*)(gfx.DMEM+src);
   zSortVDest * daddr = (zSortVDest*)(gfx.DMEM+dst);
   int idx = 0;
@@ -511,7 +511,7 @@ static void uc9_mult_mpmtx ()
     daddr[i] = v;
     //memcpy(gfx.DMEM+dst+sizeof(zSortVDest)*i, &v, sizeof(zSortVDest));
 //    FRDP("v%d x: %d, y: %d, z: %d -> sx: %d, sy: %d, w: %d, xi: %d, yi: %d, wi: %d, fog: %d\n", i, sx, sy, sz, v.sx, v.sy, v.invw, v.xi, v.yi, v.wi, v.fog);
-    FRDP("v%d x: %d, y: %d, z: %d -> sx: %04lx, sy: %04lx, invw: %08lx - %f, xi: %04lx, yi: %04lx, wi: %04lx, fog: %04lx\n", i, sx, sy, sz, v.sx, v.sy, v.invw, w, v.xi, v.yi, v.wi, v.fog);
+    FRDP("v%d x: %d, y: %d, z: %d -> sx: %04x, sy: %04x, invw: %08x - %f, xi: %04x, yi: %04x, wi: %04x, fog: %04x\n", i, sx, sy, sz, v.sx, v.sy, v.invw, w, v.xi, v.yi, v.wi, v.fog);
   }
 }
 
@@ -551,13 +551,13 @@ void uc9_movemem ()
     if (flag == 0)
     {
       int dmem_addr = (idx<<3) + ofs;
-      FRDP ("Load to DMEM. %08lx -> %08lx\n", addr, dmem_addr);
+      FRDP ("Load to DMEM. %08x -> %08x\n", addr, dmem_addr);
       memcpy(gfx.DMEM + dmem_addr, gfx.RDRAM + addr, len);
     }
     else
     {
       int dmem_addr = (idx<<3) + ofs;
-      FRDP ("Load from DMEM. %08lx -> %08lx\n", dmem_addr, addr);
+      FRDP ("Load from DMEM. %08x -> %08x\n", dmem_addr, addr);
       memcpy(gfx.RDRAM + addr, gfx.DMEM + dmem_addr, len);
     }
     break;
@@ -642,7 +642,7 @@ void uc9_movemem ()
 
       rdp.geom_mode |= 0x0200;
 
-      FRDP ("viewport scale(%d, %d, %d), trans(%d, %d, %d), from:%08lx\n", scale_x, scale_y, scale_z,
+      FRDP ("viewport scale(%d, %d, %d), trans(%d, %d, %d), from:%08x\n", scale_x, scale_y, scale_z,
         trans_x, trans_y, trans_z, a);
       FRDP ("fog: multiplier: %f, offset: %f\n", rdp.fog_multiplier, rdp.fog_offset);
     }

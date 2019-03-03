@@ -69,7 +69,7 @@ static void fb_bg_copy ()
   wxUint8 imageFmt	= ((wxUint8 *)gfx.RDRAM)[BYTEADDR(((addr+11)<<1)+0)];
   wxUint8 imageSiz	= ((wxUint8 *)gfx.RDRAM)[BYTEADDR(((addr+11)<<1)+1)];
   wxUint32 imagePtr	= segoffset(((wxUint32*)gfx.RDRAM)[(addr+8)>>1]);
-  FRDP ("fb_bg_copy. fmt: %d, size: %d, imagePtr %08lx, main_ci: %08lx, cur_ci: %08lx \n", imageFmt, imageSiz, imagePtr, rdp.main_ci, rdp.frame_buffers[rdp.ci_count-1].addr);
+  FRDP ("fb_bg_copy. fmt: %d, size: %d, imagePtr %08x, main_ci: %08x, cur_ci: %08x \n", imageFmt, imageSiz, imagePtr, rdp.main_ci, rdp.frame_buffers[rdp.ci_count-1].addr);
 
   if (status == ci_main)
   {
@@ -95,7 +95,7 @@ static void fb_bg_copy ()
       rdp.motionblur = TRUE;
     }
 
-    FRDP ("Detect FB usage. texture addr is inside framebuffer: %08lx - %08lx \n", imagePtr, rdp.main_ci);
+    FRDP ("Detect FB usage. texture addr is inside framebuffer: %08x - %08x \n", imagePtr, rdp.main_ci);
   }
   else if (imagePtr == rdp.zimg)
   {
@@ -184,7 +184,7 @@ static void fb_settextureimage()
     wxUint32 addr = segoffset(rdp.cmd1);
     if ( tex_format == 0 )
     {
-      FRDP ("fb_settextureimage. fmt: %d, size: %d, imagePtr %08lx, main_ci: %08lx, cur_ci: %08lx \n", ((rdp.cmd0 >> 21) & 0x07), ((rdp.cmd0 >> 19) & 0x03), addr, rdp.main_ci, rdp.frame_buffers[rdp.ci_count-1].addr);
+      FRDP ("fb_settextureimage. fmt: %d, size: %d, imagePtr %08x, main_ci: %08x, cur_ci: %08x \n", ((rdp.cmd0 >> 21) & 0x07), ((rdp.cmd0 >> 19) & 0x03), addr, rdp.main_ci, rdp.frame_buffers[rdp.ci_count-1].addr);
       if (cur_fb.status == ci_main)
       {
         rdp.main_ci_last_tex_addr = addr;
@@ -237,7 +237,7 @@ static void fb_settextureimage()
             FRDP("rdp.frame_buffers[%d].status = ci_aux\n", rdp.copy_ci_index);
           }
         }
-        FRDP ("Detect FB usage. texture addr is inside framebuffer: %08lx - %08lx \n", addr, rdp.main_ci);
+        FRDP ("Detect FB usage. texture addr is inside framebuffer: %08x - %08x \n", addr, rdp.main_ci);
       }
       ///*
       else if ((cur_fb.status != ci_main) && (addr >= rdp.zimg && addr < rdp.zimg_end))
@@ -253,7 +253,7 @@ static void fb_settextureimage()
         if (cur_fb.status != ci_main)
         {
           cur_fb.status = ci_old_copy;
-          FRDP("rdp.frame_buffers[%d].status = ci_old_copy 1, addr:%08lx\n", rdp.ci_count-1, rdp.last_drawn_ci_addr);
+          FRDP("rdp.frame_buffers[%d].status = ci_old_copy 1, addr:%08x\n", rdp.ci_count-1, rdp.last_drawn_ci_addr);
         }
         rdp.read_previous_ci = TRUE;
         LRDP("read_previous_ci = TRUE\n");
@@ -263,7 +263,7 @@ static void fb_settextureimage()
         if (cur_fb.status != ci_main)
         {
           cur_fb.status = ci_old_copy;
-          FRDP("rdp.frame_buffers[%d].status = ci_old_copy 2, addr:%08lx\n", rdp.ci_count-1, rdp.last_drawn_ci_addr);
+          FRDP("rdp.frame_buffers[%d].status = ci_old_copy 2, addr:%08x\n", rdp.ci_count-1, rdp.last_drawn_ci_addr);
         }
         rdp.read_previous_ci = TRUE;
         LRDP("read_previous_ci = TRUE\n");
@@ -300,7 +300,7 @@ static void fb_setdepthimage()
 {
   rdp.zimg = segoffset(rdp.cmd1) & BMASK;
   rdp.zimg_end = rdp.zimg + rdp.ci_width*rdp.ci_height*2;
-  FRDP ("fb_setdepthimage. addr %08lx - %08lx\n", rdp.zimg, rdp.zimg_end);
+  FRDP ("fb_setdepthimage. addr %08x - %08x\n", rdp.zimg, rdp.zimg_end);
   if (rdp.zimg == rdp.main_ci)  //strange, but can happen
   {
     rdp.frame_buffers[rdp.main_ci_index].status = ci_unknown;
@@ -362,7 +362,7 @@ static void fb_setcolorimage()
   if (rdp.frame_buffers[0].addr == rdp.cimg)
   rdp.frame_buffers[0].height = rdp.scissor_o.lr_y;
   */
-  FRDP ("fb_setcolorimage. width: %d,  height: %d,  fmt: %d, size: %d, addr %08lx\n", cur_fb.width, cur_fb.height, cur_fb.format, cur_fb.size, cur_fb.addr);
+  FRDP ("fb_setcolorimage. width: %d,  height: %d,  fmt: %d, size: %d, addr %08x\n", cur_fb.width, cur_fb.height, cur_fb.format, cur_fb.size, cur_fb.addr);
   if (rdp.cimg == rdp.zimg)
   {
     cur_fb.status = ci_zimg;
