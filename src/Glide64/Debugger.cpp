@@ -510,7 +510,7 @@ void debug_capture ()
       OUTPUT ("othermode_h: 0x%08x", _debugger.tri_sel->othermode_h);
       OUTPUT ("othermode_l: 0x%08x", _debugger.tri_sel->othermode_l);
       OUTPUT ("flags: 0x%08x", _debugger.tri_sel->flags);
-      OUTPUT0 ("");
+      OUTPUT ("%s", "");
       COL_CATEGORY();
       OUTPUT0 ("COMBINE:");
       COL_TEXT();
@@ -609,7 +609,7 @@ void debug_capture ()
       OUTPUT ("fbl_b1: %s", FBLb[(_debugger.tri_sel->othermode_l>>24)&0x3]);
       OUTPUT ("fbl_c1: %s", FBLc[(_debugger.tri_sel->othermode_l>>20)&0x3]);
       OUTPUT ("fbl_d1: %s", FBLd[(_debugger.tri_sel->othermode_l>>16)&0x3]);
-      OUTPUT0 ("");
+      OUTPUT ("%s", "");
       OUTPUT ("fbl:    %08x", _debugger.tri_sel->othermode_l&0xFFFF0000);
       OUTPUT ("fbl #1: %08x", _debugger.tri_sel->othermode_l&0xCCCC0000);
       OUTPUT ("fbl #2: %08x", _debugger.tri_sel->othermode_l&0x33330000);
@@ -697,13 +697,13 @@ void debug_capture ()
       // change these to output whatever you need, ou for triangles, or u0 for texrects
       COL_TEXT();
       OUTPUT ("n: %d", _debugger.tri_sel->nv);
-      OUTPUT0 ("");
+      OUTPUT ("%s", "");
       for (j=0; j<_debugger.tri_sel->nv; j++)
       {
         OUTPUT1 ("v[%d].s0: %f", j, _debugger.tri_sel->v[j].ou);
         OUTPUT1 ("v[%d].t0: %f", j, _debugger.tri_sel->v[j].ov);
       }
-      OUTPUT0 ("");
+      OUTPUT ("%s", "");
       for (j=0; j<_debugger.tri_sel->nv; j++)
       {
         OUTPUT1 ("v[%d].s1: %f", j, _debugger.tri_sel->v[j].u0);
