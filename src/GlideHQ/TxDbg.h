@@ -24,6 +24,12 @@
 #ifndef __TXDBG_H__
 #define __TXDBG_H__
 
+#if defined(__GNUC__)
+#define ATTR_FMT(fmtpos, attrpos) __attribute__ ((format (printf, fmtpos, attrpos)))
+#else
+#define ATTR_FMT(fmtpos, attrpos)
+#endif
+
 #include <stdio.h>
 #include "TxInternal.h"
 
@@ -39,7 +45,7 @@ public:
     return &txDbg;
   }
   ~TxDbg();
-  void output(const int level, const wchar_t *format, ...);
+  void output(const int level, const wchar_t *format, ...) ATTR_FMT(2,3);
 };
 
 #ifdef DEBUG

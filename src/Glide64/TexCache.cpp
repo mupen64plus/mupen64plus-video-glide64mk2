@@ -534,7 +534,7 @@ void TexCache ()
     }
     /* Turn on texture dump */
     else if (CheckKeyPressed(G64_VK_D, 0x0001)) {
-      extern void DisplayLoadProgress(const wchar_t *format, ...);
+      extern void DisplayLoadProgress(const wchar_t *format, ...) ATTR_FMT(1,2);
       ghq_dmptex_toggle_key = !ghq_dmptex_toggle_key;
       if (ghq_dmptex_toggle_key) {
         DisplayLoadProgress(L"Texture dump - ON\n");

@@ -244,7 +244,10 @@ extern std::ofstream rdp_err;
 #define RDP_E(x)
 #endif
 
-__inline void FRDP (const char *fmt, ...)
+__inline void FRDP (const char *fmt, ...) ATTR_FMT(1,2);
+__inline void FRDP_E (const char *fmt, ...) ATTR_FMT(1,2);
+
+void FRDP (const char *fmt, ...)
 {
 #ifdef RDP_LOGGING
 	if (!settings.logging || !log_open) return;
@@ -260,7 +263,8 @@ __inline void FRDP (const char *fmt, ...)
 	va_end(ap);
 #endif
 }
-__inline void FRDP_E (const char *fmt, ...)
+
+void FRDP_E (const char *fmt, ...)
 {
 #ifdef RDP_ERROR_LOG
 	if (!settings.elogging || !elog_open) return;
