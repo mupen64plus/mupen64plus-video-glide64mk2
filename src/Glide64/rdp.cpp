@@ -1901,7 +1901,17 @@ dxt_test:
     --v15;
     if ( !v15 )
       break;
-    v16 += dxt;
+
+    /* use unsigned overflow handling because signed integer might trigger
+     * "undefined" compiler behavior
+     */
+    unsigned int t = v16;
+    unsigned int _dxt = dxt;
+    t += _dxt;
+
+    /* convert back to signed integer */
+    v16 = t;
+
     if ( v16 < 0 )
     {
       while ( 1 )
