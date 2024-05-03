@@ -37,8 +37,8 @@ TxTexCache::~TxTexCache()
   if (_options & DUMP_TEXCACHE) {
     /* dump cache to disk */
     std::wstring filename = _ident + L"_MEMORYCACHE.dat";
-    boost::filesystem::wpath cachepath(_cachepath);
-    cachepath /= boost::filesystem::wpath(L"glidehq");
+    boost::filesystem::path cachepath(_cachepath);
+    cachepath /= boost::filesystem::path(L"glidehq");
     int config = _options & (FILTER_MASK|ENHANCEMENT_MASK|COMPRESS_TEX|COMPRESSION_MASK|FORCE16BPP_TEX|GZ_TEXCACHE);
 
     TxCache::save(cachepath.wstring().c_str(), filename.c_str(), config);
@@ -58,8 +58,8 @@ TxTexCache::TxTexCache(int options, int cachesize, const wchar_t *datapath, cons
   if (_options & DUMP_TEXCACHE) {
     /* find it on disk */
     std::wstring filename = _ident + L"_MEMORYCACHE.dat";
-    boost::filesystem::wpath cachepath(_cachepath);
-    cachepath /= boost::filesystem::wpath(L"glidehq");
+    boost::filesystem::path cachepath(_cachepath);
+    cachepath /= boost::filesystem::path(L"glidehq");
     int config = _options & (FILTER_MASK|ENHANCEMENT_MASK|COMPRESS_TEX|COMPRESSION_MASK|FORCE16BPP_TEX|GZ_TEXCACHE);
 
     TxCache::load(cachepath.wstring().c_str(), filename.c_str(), config);
