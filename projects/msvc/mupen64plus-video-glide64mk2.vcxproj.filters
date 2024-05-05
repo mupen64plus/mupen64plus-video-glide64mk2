@@ -19,6 +19,9 @@
     <Filter Include="GlideHQ\tc-1.1+\s2tc">
       <UniqueIdentifier>{2cc583d4-7f35-421e-93d1-42b27587c3de}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GlideHQ\Windows">
+      <UniqueIdentifier>{09258efe-2a3d-4c7c-825f-c2c0881048f0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GlideHQ\TextureFilters_hq4x.cpp">
@@ -137,6 +140,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\GlideHQ\tc-1.1+\s2tc\s2tc_libtxc_dxtn.cpp">
       <Filter>GlideHQ\tc-1.1+\s2tc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GlideHQ\osal_files_win32.c">
+      <Filter>GlideHQ\Windows</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

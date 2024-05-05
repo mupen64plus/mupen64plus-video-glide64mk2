@@ -34,7 +34,7 @@
 #include "TxQuantize.h"
 #include "TxImage.h"
 #include "TxReSample.h"
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 class TxHiResCache : public TxCache
 {
@@ -47,7 +47,7 @@ private:
   TxImage *_txImage;
   TxQuantize *_txQuantize;
   TxReSample *_txReSample;
-  boolean loadHiResTextures(boost::filesystem::path dir_path, boolean replace);
+  boolean loadHiResTextures(std::filesystem::path dir_path, boolean replace);
 public:
   ~TxHiResCache();
   TxHiResCache(int maxwidth, int maxheight, int maxbpp, int options,
