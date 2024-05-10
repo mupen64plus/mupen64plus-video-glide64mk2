@@ -44,7 +44,6 @@ ifeq ("$(UNAME)","Darwin")
   OS = OSX
   SO_EXTENSION = dylib
   SHARED = -bundle
-  BOOST_SUFFIX = -mt
 endif
 ifeq ("$(UNAME)","FreeBSD")
   OS = FREEBSD
@@ -66,7 +65,6 @@ ifeq ("$(patsubst MINGW%,MINGW,$(UNAME))","MINGW")
   SO_EXTENSION = dll
   SHARED = -shared
   PIC = 0
-  BOOST_SUFFIX = -mt
   CPPFLAGS += -DNO_FILTER_THREAD
 endif
 ifeq ("$(OS)","NONE")
@@ -154,9 +152,8 @@ OBJDIR = _obj$(POSTFIX)
 OPTFLAGS ?= -O3 -flto
 WARNFLAGS ?= -Wall -Wno-unused-function
 CFLAGS += $(OPTFLAGS) $(WARNFLAGS) -ffast-math -fno-strict-aliasing -fvisibility=hidden -I$(SRCDIR) -I$(SRCDIR)/Glitch64/inc -DGCC
-CXXFLAGS += -fvisibility-inlines-hidden -std=gnu++0x
+CXXFLAGS += -fvisibility-inlines-hidden -std=gnu++17
 LDFLAGS += $(SHARED)
-BOOST_SUFFIX ?=
 
 ifeq ($(CPU), X86)
   CFLAGS +=  -mmmx -msse
@@ -440,7 +437,6 @@ SOURCE += \
 	$(SRCDIR)/GlideHQ/tc-1.1+/texstore.c
 
 CPPFLAGS += -DTEXTURE_FILTER -DDUMP_CACHE
-LDLIBS += -lboost_filesystem$(BOOST_SUFFIX) -lboost_system$(BOOST_SUFFIX)
 
   ifeq ($(TXCDXTN), 1)
     CPPFLAGS += -DTXCDXTN_EXTERNAL
@@ -452,9 +448,13 @@ LDLIBS += -lboost_filesystem$(BOOST_SUFFIX) -lboost_system$(BOOST_SUFFIX)
 endif
 
 ifeq ($(OS),MINGW)
-SOURCE += $(SRCDIR)/Glide64/osal_dynamiclib_win32.c
+SOURCE += \
+	$(SRCDIR)/Glide64/osal_dynamiclib_win32.c \
+	$(SRCDIR)/GlideHQ/osal_files_win32.c
 else
-SOURCE += $(SRCDIR)/Glide64/osal_dynamiclib_unix.c
+SOURCE += \
+	$(SRCDIR)/Glide64/osal_dynamiclib_unix.c \
+	$(SRCDIR)/GlideHQ/osal_files_unix.c
 endif
  
 

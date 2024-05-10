@@ -36,6 +36,8 @@
 #define swprintf _snwprintf
 #endif
 
+#include "osal_files.h"
+
 typedef struct {
     uint32 *src;
     uint32 srcwidth;
@@ -658,18 +660,18 @@ TxFilter::dmptx(uint8 *src, int width, int height, int rowStridePixel, uint16 gf
 
     /* create directories */
     tmpbuf.assign(_datapath + L"/texture_dump");
-    if (!boost::filesystem::exists(tmpbuf) &&
-        !boost::filesystem::create_directory(tmpbuf))
+    if (!osal_path_existsW(tmpbuf.c_str()) &&
+        !osal_mkdirp(tmpbuf.c_str()))
       return 0;
 
     tmpbuf.append(L"/" + _ident);
-    if (!boost::filesystem::exists(tmpbuf) &&
-        !boost::filesystem::create_directory(tmpbuf))
+    if (!osal_path_existsW(tmpbuf.c_str()) &&
+        !osal_mkdirp(tmpbuf.c_str()))
       return 0;
 
     tmpbuf.append(L"/GlideHQ");
-    if (!boost::filesystem::exists(tmpbuf) &&
-        !boost::filesystem::create_directory(tmpbuf))
+    if (!osal_path_existsW(tmpbuf.c_str()) &&
+        !osal_mkdirp(tmpbuf.c_str()))
       return 0;
 
     if ((n64fmt >> 8) == 0x2) {

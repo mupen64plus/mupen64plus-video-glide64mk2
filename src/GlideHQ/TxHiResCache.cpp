@@ -58,6 +58,8 @@
 #include "TxHiResCache.h"
 #include "TxDbg.h"
 #include "../Glide64/Gfx_1.3.h"
+#include "osal_files.h"
+
 
 TxHiResCache::~TxHiResCache()
 {
@@ -65,8 +67,8 @@ TxHiResCache::~TxHiResCache()
   if ((_options & DUMP_HIRESTEXCACHE) && !_haveCache && !_abortLoad) {
     /* dump cache to disk */
     std::wstring filename = _ident + L"_HIRESTEXTURES.dat";
-    boost::filesystem::wpath cachepath(_cachepath);
-    cachepath /= boost::filesystem::wpath(L"glidehq");
+    std::filesystem::path cachepath(_cachepath);
+    cachepath /= std::filesystem::path(L"glidehq");
     int config = _options & (HIRESTEXTURES_MASK|COMPRESS_HIRESTEX|COMPRESSION_MASK|TILE_HIRESTEX|FORCE16BPP_HIRESTEX|GZ_HIRESTEXCACHE|LET_TEXARTISTS_FLY);
 
     TxCache::save(cachepath.wstring().c_str(), filename.c_str(), config);
@@ -107,8 +109,8 @@ TxHiResCache::TxHiResCache(int maxwidth, int maxheight, int maxbpp, int options,
   if (_options & DUMP_HIRESTEXCACHE) {
     /* find it on disk */
     std::wstring filename = _ident + L"_HIRESTEXTURES.dat";
-    boost::filesystem::wpath cachepath(_cachepath);
-    cachepath /= boost::filesystem::wpath(L"glidehq");
+    std::filesystem::path cachepath(_cachepath);
+    cachepath /= std::filesystem::path(L"glidehq");
     int config = _options & (HIRESTEXTURES_MASK|COMPRESS_HIRESTEX|COMPRESSION_MASK|TILE_HIRESTEX|FORCE16BPP_HIRESTEX|GZ_HIRESTEXCACHE|LET_TEXARTISTS_FLY);
 
     _haveCache = TxCache::load(cachepath.wstring().c_str(), filename.c_str(), config);
@@ -132,7 +134,7 @@ TxHiResCache::load(boolean replace) /* 0 : reload, 1 : replace partial */
 
     if (!replace) TxCache::clear();
 
-    boost::filesystem::wpath dir_path(_datapath);
+    std::filesystem::path dir_path(_datapath);
 
     switch (_options & HIRESTEXTURES_MASK) {
     case GHQ_HIRESTEXTURES:
@@ -149,8 +151,8 @@ TxHiResCache::load(boolean replace) /* 0 : reload, 1 : replace partial */
       INFO(80, L"  usage of only 2) and 3) highly recommended!\n");
       INFO(80, L"  folder names must be in US-ASCII characters!\n");
 
-      dir_path /= boost::filesystem::wpath(L"hires_texture");
-      dir_path /= boost::filesystem::wpath(_ident);
+      dir_path /= std::filesystem::path(L"hires_texture");
+      dir_path /= std::filesystem::path(_ident);
       loadHiResTextures(dir_path, replace);
       break;
     case JABO_HIRESTEXTURES:
@@ -164,7 +166,7 @@ TxHiResCache::load(boolean replace) /* 0 : reload, 1 : replace partial */
 }
 
 boolean
-TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean replace)
+TxHiResCache::loadHiResTextures(std::filesystem::path dir_path, boolean replace)
 {
   uint32_t last, now, diff;
   DBG_INFO(80, L"-----\n");
@@ -172,7 +174,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
   last = SDL_GetTicks();
 
   /* find it on disk */
-  if (!boost::filesystem::exists(dir_path)) {
+  if (!osal_path_existsW(dir_path.wstring().c_str())) {
     INFO(80, L"Error: path not found!\n");
     return 0;
   }
@@ -205,8 +207,8 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
    *
    * RULE OF THUMB: NEVER save texture packs in NON-ASCII names!!
    */
-  boost::filesystem::directory_iterator it(dir_path);
-  boost::filesystem::directory_iterator end_it; /* default construction yields past-the-end */
+  std::filesystem::directory_iterator it(dir_path);
+  std::filesystem::directory_iterator end_it; /* default construction yields past-the-end */
 
   for (; it != end_it; ++it) {
 
@@ -218,13 +220,13 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
     if (_abortLoad) break;
 
     /* recursive read into sub-directory */
-    if (boost::filesystem::is_directory(it->status())) {
+    if (std::filesystem::is_directory(it->status())) {
       loadHiResTextures(it->path(), replace);
       continue;
     }
 
     DBG_INFO(80, L"-----\n");
-    DBG_INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+    DBG_INFO(80, L"file: %ls\n", it->path().filename().c_str());
 
     int width = 0, height = 0;
     uint16 format = 0;
@@ -257,8 +259,8 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
     /* read in Rice's file naming convention */
 #define CRCFMTSIZ_LEN 13
 #define PALCRC_LEN 9
-    //wcstombs(fname, it->path().leaf().c_str(), MAX_PATH);
-    strncpy(fname, it->path().leaf().string().c_str(), sizeof(fname));
+    //wcstombs(fname, it->path().filename().c_str(), MAX_PATH);
+    strncpy(fname, it->path().filename().string().c_str(), sizeof(fname));
     fname[sizeof(fname) - 1] = '\0';
     /* XXX case sensitivity fiasco!
      * files must use _a, _rgb, _all, _allciByRGBA, _ciByRGBA, _ci
@@ -276,7 +278,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
       INFO(80, L"-----\n");
       INFO(80, L"path: %ls\n", dir_path.string().c_str());
-      INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+      INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
       INFO(80, L"Error: not png or bmp or dds!\n");
       continue;
@@ -295,7 +297,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
       INFO(80, L"-----\n");
       INFO(80, L"path: %ls\n", dir_path.string().c_str());
-      INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+      INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
       INFO(80, L"Error: not Rice texture naming convention!\n");
       continue;
@@ -304,7 +306,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
       INFO(80, L"-----\n");
       INFO(80, L"path: %ls\n", dir_path.string().c_str());
-      INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+      INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
       INFO(80, L"Error: crc32 = 0!\n");
       continue;
@@ -319,7 +321,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
         INFO(80, L"-----\n");
         INFO(80, L"path: %ls\n", dir_path.string().c_str());
-        INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+        INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
         INFO(80, L"Error: already cached! duplicate texture!\n");
         continue;
@@ -349,13 +351,13 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
      */
     if (pfname == strstr(fname, "_rgb.") || pfname == strstr(fname, "_a.")) {
       strcpy(pfname, "_rgb.png");
-      if (!boost::filesystem::exists(fname)) {
+      if (!osal_path_existsA(fname)) {
         strcpy(pfname, "_rgb.bmp");
-        if (!boost::filesystem::exists(fname)) {
+        if (!osal_path_existsA(fname)) {
 #if !DEBUG
           INFO(80, L"-----\n");
           INFO(80, L"path: %ls\n", dir_path.string().c_str());
-          INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+          INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
           INFO(80, L"Error: missing _rgb.*! _a.* must be paired with _rgb.*!\n");
           continue;
@@ -396,7 +398,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
           INFO(80, L"-----\n");
           INFO(80, L"path: %ls\n", dir_path.string().c_str());
-          INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+          INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
           if (!tex) {
             INFO(80, L"Error: missing _rgb.*!\n");
@@ -448,7 +450,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
           INFO(80, L"-----\n");
           INFO(80, L"path: %ls\n", dir_path.string().c_str());
-          INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+          INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
           INFO(80, L"Warning: missing _a.*! only using _rgb.*. treat as opaque texture.\n");
           int i;
@@ -495,7 +497,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
           INFO(80, L"-----\n");
           INFO(80, L"path: %ls\n", dir_path.string().c_str());
-          INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+          INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
           INFO(80, L"Error: W:H aspect ratio range not 8:1 - 1:8!\n");
           continue;
@@ -507,7 +509,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
           INFO(80, L"-----\n");
           INFO(80, L"path: %ls\n", dir_path.string().c_str());
-          INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+          INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
           INFO(80, L"Error: not power of 2 size!\n");
           continue;
@@ -520,7 +522,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
       INFO(80, L"-----\n");
       INFO(80, L"path: %ls\n", dir_path.string().c_str());
-      INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+      INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
       INFO(80, L"Error: load failed!\n");
       continue;
@@ -539,7 +541,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
       INFO(80, L"-----\n");
       INFO(80, L"path: %ls\n", dir_path.string().c_str());
-      INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+      INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
       INFO(80, L"Error: not width * height > 4 or 8bit palette color or 32bpp or dxt1 or dxt3 or dxt5!\n");
       continue;
@@ -1017,7 +1019,7 @@ TxHiResCache::loadHiResTextures(boost::filesystem::wpath dir_path, boolean repla
 #if !DEBUG
       INFO(80, L"-----\n");
       INFO(80, L"path: %ls\n", dir_path.string().c_str());
-      INFO(80, L"file: %ls\n", it->path().leaf().c_str());
+      INFO(80, L"file: %ls\n", it->path().filename().c_str());
 #endif
       if (tex) {
         free(tex);

@@ -25,12 +25,13 @@
 #pragma warning(disable: 4786)
 #endif
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <zlib.h>
 #include "TxCache.h"
 #include "TxDbg.h"
 #include "../Glide64/m64p.h"
 #include "../Glide64/Gfx_1.3.h"
+#include "osal_files.h"
 
 TxCache::~TxCache()
 {
@@ -237,11 +238,11 @@ TxCache::save(const wchar_t *path, const wchar_t *filename, int config)
     /* dump cache to disk */
     char cbuf[MAX_PATH];
 
-    boost::filesystem::wpath cachepath(path);
-    boost::filesystem::create_directory(cachepath);
+    std::filesystem::path cachepath(path);
+    osal_mkdirp(cachepath.wstring().c_str());
 
     /* Ugly hack to enable fopen/gzopen in Win9x */
-#ifdef BOOST_WINDOWS_API
+#ifdef _WIN32
     wchar_t curpath[MAX_PATH];
     GETCWD(MAX_PATH, curpath);
     CHDIR(cachepath.wstring().c_str());
@@ -330,9 +331,9 @@ TxCache::load(const wchar_t *path, const wchar_t *filename, int config)
   /* find it on disk */
   char cbuf[MAX_PATH];
 
-  boost::filesystem::wpath cachepath(path);
+  std::filesystem::path cachepath(path);
 
-#ifdef BOOST_WINDOWS_API
+#ifdef _WIN32
   wchar_t curpath[MAX_PATH];
   GETCWD(MAX_PATH, curpath);
   CHDIR(cachepath.wstring().c_str());
