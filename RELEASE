@@ -1,9 +1,85 @@
 Mupen64Plus-Video-Glide64mk2 RELEASE
 -------------------------------------
 
-Mupen64Plus-Video-Glide64mk2 v2.5.9 - February 10, 2019
--------------------------------------------------------
- - *** BETA RELEASE *** For Testing Only ***
+-----------------------------------------------------
+# Mupen64Plus-Video-Glide64mk2 v2.6.0 - July 14, 2024
+
+## Merged PRs
+
+* [132](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/132): CI/CD: Update to generic scripts, independent schedule, etc
+* [130](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/130): Remove Boost dependency
+* [129](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/129): Hotfix building with Boost v1.85.0
+* [125](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/125): CI/CD: Fixes Ubuntu i386 builds, among other changes
+* [124](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/124): CI/CD: Integrate scheduled builds and other...
+* [123](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/123): rdp: Avoid signed overflow during texture block loading
+* [122](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/122): CI/CD: Update MSVC
+* [121](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/121): CI/CD: Update
+* [118](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/118): CI/CD: Implement GitHub Actions and public nightly builds
+* [117](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/117): Add RISC-V Support
+* [115](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/115): build: Allow out of tree builds.
+* [111](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/111): Allow non-default compilers without resorting to symbolic links
+* [110](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/110): Allow to set custom platform toolset from commands
+* [109](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/109): Changes to have more generic project files
+* [106](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/106): Fix clang errors
+* [105](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/105): Add ppc64le support
+
+
+## Closed Issues
+
+* [131](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/131): ci: Build failure
+* [128](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/128): Build failure with Boost 1.85.0
+* [127](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/127): Current glide64mk2 is incompatible with RMG. Can someone make a new build that works? Needs an update.
+* [126](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/126): Use `GL_NUM_EXTENSIONS` and `glGetStringi` to check OpenGL extensions
+* [77](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/77): Paper Mario Star spirit text missing
+* [120](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/120): Super Mario 64: Texture pixels appear to be swapped with adjacent pixels
+* [90](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/90): Unable to compile on MSYS2
+* [114](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/114): Unable to launch any games with plugin
+
+
+## Top Contributors (2 or more commits)
+1. Jj0YzL5nvJ
+2. richard42
+3. GhostlyDark
+4. Gillou68310
+
+
+---------------------------------------------------------
+# Mupen64Plus-Video-Glide64mk2 v2.5.9 - February 10, 2019
+
+## Merged PRs
+
+* [102](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/102): Added support for aarch64
+* [101](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/101): fix presumed off-by-one bug in TxQuantize::quantize
+* [99](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/99): Remove MAX_NUMCORE.
+* [98](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/98): Warnings
+* [96](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/96): Remove 'register' storage class specifier.
+* [95](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/95): Use debug callback instead of stdout
+* [94](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/94): Update homepage links
+* [92](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/92): Initialize glew before trying to use unresolved symbols
+* [91](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/91): Build MXE targets as additional tests in travis build matrix
+* [89](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/89): Use uintptr_t type for pointer to integer conversion.
+* [88](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/88): Fix compilation on clang. Fixes issue 87.
+* [86](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/86): Use faster container based Travis CI
+* [79](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/79): Add Zelda MM ucode from GLideN64
+* [78](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/78): Don't use SSE on PowerPC.
+* [70](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/70): Use Ubuntu Trusty as base system for Travis CI
+* [69](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/69): Add raspberry pi build option
+* [65](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/65): Fix black screen when wrpFBO is set to False 
+* [64](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/64): Added x64 configuration to VisualStudio2013 project file
+* [59](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/59): Remove unnecessary OpenBSD warning.
+* [57](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/pull/57): flto reverts, second attempt
+
+
+## Closed Issues
+
+* [77](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/77): Paper Mario Star spirit text missing
+* [103](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/103): Build fails in Visual Studio 2013
+* [100](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/100): potential issue in TxQuantize.cpp
+* [87](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/87): Change __builtin_ia32_storeups() use in favor of _mm_storeu_ps()
+* [85](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/85): Build fails on OpenBSD
+* [58](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/58): Please use regression test with GCC/Clang sanitizer
+* [54](https://github.com/mupen64plus/mupen64plus-video-glide64mk2/issues/54): Different colors in kirby arms
+
 
 Mupen64Plus-Video-Glide64mk2 v2.5 - April 26, 2015
 --------------------------------------------------
