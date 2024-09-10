@@ -67,8 +67,8 @@ TxHiResCache::~TxHiResCache()
   if ((_options & DUMP_HIRESTEXCACHE) && !_haveCache && !_abortLoad) {
     /* dump cache to disk */
     std::wstring filename = _ident + L"_HIRESTEXTURES.dat";
-    std::filesystem::path cachepath(_cachepath);
-    cachepath /= std::filesystem::path(L"glidehq");
+    fs::path cachepath(_cachepath);
+    cachepath /= fs::path(L"glidehq");
     int config = _options & (HIRESTEXTURES_MASK|COMPRESS_HIRESTEX|COMPRESSION_MASK|TILE_HIRESTEX|FORCE16BPP_HIRESTEX|GZ_HIRESTEXCACHE|LET_TEXARTISTS_FLY);
 
     TxCache::save(cachepath.wstring().c_str(), filename.c_str(), config);
@@ -109,8 +109,8 @@ TxHiResCache::TxHiResCache(int maxwidth, int maxheight, int maxbpp, int options,
   if (_options & DUMP_HIRESTEXCACHE) {
     /* find it on disk */
     std::wstring filename = _ident + L"_HIRESTEXTURES.dat";
-    std::filesystem::path cachepath(_cachepath);
-    cachepath /= std::filesystem::path(L"glidehq");
+    fs::path cachepath(_cachepath);
+    cachepath /= fs::path(L"glidehq");
     int config = _options & (HIRESTEXTURES_MASK|COMPRESS_HIRESTEX|COMPRESSION_MASK|TILE_HIRESTEX|FORCE16BPP_HIRESTEX|GZ_HIRESTEXCACHE|LET_TEXARTISTS_FLY);
 
     _haveCache = TxCache::load(cachepath.wstring().c_str(), filename.c_str(), config);
@@ -134,7 +134,7 @@ TxHiResCache::load(boolean replace) /* 0 : reload, 1 : replace partial */
 
     if (!replace) TxCache::clear();
 
-    std::filesystem::path dir_path(_datapath);
+    fs::path dir_path(_datapath);
 
     switch (_options & HIRESTEXTURES_MASK) {
     case GHQ_HIRESTEXTURES:
@@ -151,8 +151,8 @@ TxHiResCache::load(boolean replace) /* 0 : reload, 1 : replace partial */
       INFO(80, L"  usage of only 2) and 3) highly recommended!\n");
       INFO(80, L"  folder names must be in US-ASCII characters!\n");
 
-      dir_path /= std::filesystem::path(L"hires_texture");
-      dir_path /= std::filesystem::path(_ident);
+      dir_path /= fs::path(L"hires_texture");
+      dir_path /= fs::path(_ident);
       loadHiResTextures(dir_path, replace);
       break;
     case JABO_HIRESTEXTURES:
@@ -166,7 +166,7 @@ TxHiResCache::load(boolean replace) /* 0 : reload, 1 : replace partial */
 }
 
 boolean
-TxHiResCache::loadHiResTextures(std::filesystem::path dir_path, boolean replace)
+TxHiResCache::loadHiResTextures(fs::path dir_path, boolean replace)
 {
   uint32_t last, now, diff;
   DBG_INFO(80, L"-----\n");
@@ -207,8 +207,8 @@ TxHiResCache::loadHiResTextures(std::filesystem::path dir_path, boolean replace)
    *
    * RULE OF THUMB: NEVER save texture packs in NON-ASCII names!!
    */
-  std::filesystem::directory_iterator it(dir_path);
-  std::filesystem::directory_iterator end_it; /* default construction yields past-the-end */
+  fs::directory_iterator it(dir_path);
+  fs::directory_iterator end_it; /* default construction yields past-the-end */
 
   for (; it != end_it; ++it) {
 
@@ -220,7 +220,7 @@ TxHiResCache::loadHiResTextures(std::filesystem::path dir_path, boolean replace)
     if (_abortLoad) break;
 
     /* recursive read into sub-directory */
-    if (std::filesystem::is_directory(it->status())) {
+    if (fs::is_directory(it->status())) {
       loadHiResTextures(it->path(), replace);
       continue;
     }
