@@ -25,7 +25,7 @@
 #pragma warning(disable: 4786)
 #endif
 
-#include <filesystem>
+#include "ghc/fs_std.hpp"
 #include <zlib.h>
 #include "TxCache.h"
 #include "TxDbg.h"
@@ -238,7 +238,7 @@ TxCache::save(const wchar_t *path, const wchar_t *filename, int config)
     /* dump cache to disk */
     char cbuf[MAX_PATH];
 
-    std::filesystem::path cachepath(path);
+    fs::path cachepath(path);
     osal_mkdirp(cachepath.wstring().c_str());
 
     /* Ugly hack to enable fopen/gzopen in Win9x */
@@ -331,7 +331,7 @@ TxCache::load(const wchar_t *path, const wchar_t *filename, int config)
   /* find it on disk */
   char cbuf[MAX_PATH];
 
-  std::filesystem::path cachepath(path);
+  fs::path cachepath(path);
 
 #ifdef _WIN32
   wchar_t curpath[MAX_PATH];

@@ -29,7 +29,7 @@
 #include "TxDbg.h"
 #include <zlib.h>
 #include <string>
-#include <filesystem>
+#include "ghc/fs_std.hpp"
 
 TxTexCache::~TxTexCache()
 {
@@ -37,8 +37,8 @@ TxTexCache::~TxTexCache()
   if (_options & DUMP_TEXCACHE) {
     /* dump cache to disk */
     std::wstring filename = _ident + L"_MEMORYCACHE.dat";
-    std::filesystem::path cachepath(_cachepath);
-    cachepath /= std::filesystem::path(L"glidehq");
+    fs::path cachepath(_cachepath);
+    cachepath /= fs::path(L"glidehq");
     int config = _options & (FILTER_MASK|ENHANCEMENT_MASK|COMPRESS_TEX|COMPRESSION_MASK|FORCE16BPP_TEX|GZ_TEXCACHE);
 
     TxCache::save(cachepath.wstring().c_str(), filename.c_str(), config);
@@ -58,8 +58,8 @@ TxTexCache::TxTexCache(int options, int cachesize, const wchar_t *datapath, cons
   if (_options & DUMP_TEXCACHE) {
     /* find it on disk */
     std::wstring filename = _ident + L"_MEMORYCACHE.dat";
-    std::filesystem::path cachepath(_cachepath);
-    cachepath /= std::filesystem::path(L"glidehq");
+    fs::path cachepath(_cachepath);
+    cachepath /= fs::path(L"glidehq");
     int config = _options & (FILTER_MASK|ENHANCEMENT_MASK|COMPRESS_TEX|COMPRESSION_MASK|FORCE16BPP_TEX|GZ_TEXCACHE);
 
     TxCache::load(cachepath.wstring().c_str(), filename.c_str(), config);
