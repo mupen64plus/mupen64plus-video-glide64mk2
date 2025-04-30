@@ -37,6 +37,9 @@
 //
 //****************************************************************
 
+// include math.h first, otherwise it will be confused by the min and max macros in rdp.h
+#include <math.h>
+
 #include "Gfx_1.3.h"
 extern "C" {
 #ifndef NOSSE
@@ -44,7 +47,6 @@ extern "C" {
 #endif
 }
 
-#include <math.h>
 #include "3dmath.h"
 
 void calc_light (VERTEX *v)
