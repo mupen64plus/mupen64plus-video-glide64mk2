@@ -1216,7 +1216,7 @@ grGet( FxU32 pname, FxU32 plength, FxI32 *params )
     if (plength < 4 || params == NULL) return 0;
     if (!nbTextureUnits)
     {
-      grSstWinOpen((unsigned long)NULL, GR_RESOLUTION_640x480 | 0x80000000, 0, GR_COLORFORMAT_ARGB,
+      grSstWinOpen(NULL, GR_RESOLUTION_640x480 | 0x80000000, 0, GR_COLORFORMAT_ARGB,
         GR_ORIGIN_UPPER_LEFT, 2, 1);
       grSstWinClose(0);
     }
