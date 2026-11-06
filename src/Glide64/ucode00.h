@@ -643,14 +643,23 @@ static void uc6_obj_sprite ();
 
 static void uc0_modifyvtx(wxUint8 where, wxUint16 vtx, wxUint32 val)
 {
+  if (where == 0)
+  {
+    uc6_obj_sprite ();
+    return;
+  }
+
+  if (vtx >= MAX_VTX)
+  {
+    RDP_E ("uc0:modifyvtx vertex index out of range\n");
+    FRDP ("uc0:modifyvtx vertex index out of range: %u\n", vtx);
+    return;
+  }
+
   VERTEX *v = &rdp.vtx[vtx];
 
   switch (where)
   {
-  case 0:
-    uc6_obj_sprite ();
-    break;
-
   case 0x10:    // RGBA
     v->r = (wxUint8)(val >> 24);
     v->g = (wxUint8)((val >> 16) & 0xFF);
