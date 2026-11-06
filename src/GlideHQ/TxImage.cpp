@@ -31,6 +31,7 @@
 #include "TxImage.h"
 #include "TxReSample.h"
 #include "TxDbg.h"
+#include <limits.h>
 #include <stdlib.h>
 #include "../Glide64/Gfx_1.3.h"
 
@@ -82,9 +83,11 @@ TxImage::readPNG(FILE* fp, int* width, int* height, uint16* format)
   png_structp png_ptr;
   png_infop info_ptr;
   png_uint_32 o_width, o_height;
+  png_size_t row_bytes;
+  size_t image_size;
   uint8 *image = NULL;
   int bit_depth, color_type, interlace_type, compression_type, filter_type,
-      row_bytes, num_pas;
+      num_pas;
 
   /* initialize */
   *width  = 0;
@@ -181,8 +184,18 @@ TxImage::readPNG(FILE* fp, int* width, int* height, uint16* format)
   /* we only get here if ARGB8888 */
   row_bytes = png_get_rowbytes(png_ptr, info_ptr);
 
+  if (o_width == 0 || o_width > INT_MAX ||
+      o_height == 0 || o_height > INT_MAX ||
+      row_bytes == 0 || row_bytes > INT_MAX / (size_t) o_height) {
+    png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+    DBG_INFO(80, L"Error: PNG dimensions are too large!\n");
+    return NULL;
+  }
+
+  image_size = row_bytes * (size_t) o_height;
+
   /* allocate memory to read in image */
-  image = (uint8*)malloc(row_bytes * o_height);
+  image = (uint8*)malloc(image_size);
 
   /* read in image */
   if (image) {
@@ -203,8 +216,8 @@ TxImage::readPNG(FILE* fp, int* width, int* height, uint16* format)
     /* read rest of the info structure */
     png_read_end(png_ptr, info_ptr);
 
-    *width = (row_bytes >> 2);
-    *height = o_height;
+    *width = (int) o_width;
+    *height = (int) o_height;
     *format = GR_TEXFMT_ARGB_8888;
 
 #if POW2_TEXTURES
@@ -499,7 +512,9 @@ TxImage::readBMP(FILE* fp, int* width, int* height, uint16* format)
   uint8 *image = NULL;
   uint8 *image_row = NULL;
   uint8 *tmpimage = NULL;
-  unsigned int row_bytes, pos;
+  unsigned int row_bytes;
+  long pos;
+  uint64 row_bits, row_bytes64, image_size, output_width, last_row;
   int i, j;
   /* Windows Bitmap */
   BITMAPFILEHEADER bmp_fhdr;
@@ -523,11 +538,6 @@ TxImage::readBMP(FILE* fp, int* width, int* height, uint16* format)
            bmp_ihdr.biWidth, bmp_ihdr.biHeight, bmp_ihdr.biBitCount,
            bmp_ihdr.biCompression, bmp_fhdr.bfOffBits);
 
-  /* rowStride in bytes */
-  row_bytes = (bmp_ihdr.biWidth * bmp_ihdr.biBitCount) >> 3;
-  /* align to 4bytes boundary */
-  row_bytes = (row_bytes + 3) & ~3;
-
   /* Rice hi-res textures */
   if (!(bmp_ihdr.biBitCount == 8 || bmp_ihdr.biBitCount == 4 || bmp_ihdr.biBitCount == 32 || bmp_ihdr.biBitCount == 24) ||
       bmp_ihdr.biCompression != 0) {
@@ -535,14 +545,49 @@ TxImage::readBMP(FILE* fp, int* width, int* height, uint16* format)
     return NULL;
   }
 
+  if (bmp_ihdr.biWidth <= 0 || bmp_ihdr.biHeight <= 0) {
+    DBG_INFO(80, L"Error: invalid bitmap dimensions!\n");
+    return NULL;
+  }
+
+  /* rowStride in bytes, aligned to a 4-byte boundary */
+  row_bits = (uint64) bmp_ihdr.biWidth * bmp_ihdr.biBitCount;
+  row_bytes64 = ((row_bits + 31) >> 5) << 2;
+
+  switch (bmp_ihdr.biBitCount) {
+  case 4:
+    image_size = row_bytes64 * bmp_ihdr.biHeight * 2;
+    break;
+  case 24:
+    image_size = (uint64) bmp_ihdr.biWidth * bmp_ihdr.biHeight * 4;
+    break;
+  default:
+    image_size = row_bytes64 * bmp_ihdr.biHeight;
+    break;
+  }
+
+  if (bmp_ihdr.biBitCount == 24)
+    output_width = bmp_ihdr.biWidth;
+  else
+    output_width = (row_bytes64 << 3) / bmp_ihdr.biBitCount;
+  last_row = bmp_fhdr.bfOffBits + row_bytes64 * (bmp_ihdr.biHeight - 1);
+  if (row_bytes64 == 0 || row_bytes64 > INT_MAX ||
+      image_size == 0 || image_size > INT_MAX ||
+      output_width == 0 || output_width > INT_MAX || last_row > LONG_MAX) {
+    DBG_INFO(80, L"Error: bitmap dimensions are too large!\n");
+    return NULL;
+  }
+
+  row_bytes = (unsigned int) row_bytes64;
+  pos = (long) last_row;
+
   switch (bmp_ihdr.biBitCount) {
   case 8:
   case 32:
     /* 8 bit, 32 bit bitmap */
-    image = (uint8*)malloc(row_bytes * bmp_ihdr.biHeight);
+    image = (uint8*)malloc((size_t) image_size);
     if (image) {
       tmpimage = image;
-      pos = bmp_fhdr.bfOffBits + row_bytes * (bmp_ihdr.biHeight - 1);
       for (i = 0; i < bmp_ihdr.biHeight; i++) {
         /* read in image */
         fseek(fp, pos, SEEK_SET);
@@ -555,11 +600,10 @@ TxImage::readBMP(FILE* fp, int* width, int* height, uint16* format)
     break;
   case 4:
     /* 4bit bitmap */
-    image = (uint8*)malloc((row_bytes * bmp_ihdr.biHeight) << 1);
+    image = (uint8*)malloc((size_t) image_size);
     image_row = (uint8*)malloc(row_bytes);
     if (image && image_row) {
       tmpimage = image;
-      pos = bmp_fhdr.bfOffBits + row_bytes * (bmp_ihdr.biHeight - 1);
       for (i = 0; i < bmp_ihdr.biHeight; i++) {
         /* read in image */
         fseek(fp, pos, SEEK_SET);
@@ -582,11 +626,10 @@ TxImage::readBMP(FILE* fp, int* width, int* height, uint16* format)
     break;
   case 24:
     /* 24 bit bitmap */
-    image = (uint8*)malloc((bmp_ihdr.biWidth * bmp_ihdr.biHeight) << 2);
+    image = (uint8*)malloc((size_t) image_size);
     image_row = (uint8*)malloc(row_bytes);
     if (image && image_row) {
       tmpimage = image;
-      pos = bmp_fhdr.bfOffBits + row_bytes * (bmp_ihdr.biHeight - 1);
       for (i = 0; i < bmp_ihdr.biHeight; i++) {
         /* read in image */
         fseek(fp, pos, SEEK_SET);
@@ -611,7 +654,7 @@ TxImage::readBMP(FILE* fp, int* width, int* height, uint16* format)
   }
 
   if (image) {
-    *width = (row_bytes << 3) / bmp_ihdr.biBitCount;
+    *width = (int) output_width;
     *height = bmp_ihdr.biHeight;
 
     switch (bmp_ihdr.biBitCount) {
