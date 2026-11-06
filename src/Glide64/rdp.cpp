@@ -3637,7 +3637,8 @@ void DetectFrameBufferUsage ()
 
 static wxUint32 rdp_cmd_ptr = 0;
 static wxUint32 rdp_cmd_cur = 0;
-static wxUint32 rdp_cmd_data[0x1000];
+static const wxUint32 RDP_CMD_WORDS = 0x1000;
+static wxUint32 rdp_cmd_data[RDP_CMD_WORDS];
 
 void lle_triangle(wxUint32 w1, wxUint32 w2, int shade, int texture, int zbuffer,
                   wxUint32 * rdp_cmd)
@@ -4187,6 +4188,12 @@ static void rdphalf_1()
 
     do
     {
+      if (rdp_cmd_ptr >= RDP_CMD_WORDS)
+      {
+        RDP_E("rdphalf_1 command buffer overflow\n");
+        rdp.halt = TRUE;
+        return;
+      }
       rdp_cmd_data[rdp_cmd_ptr++] = rdp.cmd1;
       // check DL counter
       if (rdp.dl_count != -1)
@@ -4212,6 +4219,12 @@ static void rdphalf_1()
       rdp.pc[rdp.pc_i] = (a+8) & BMASK;
 
     }while ((rdp.cmd0 >> 24) != 0xb3);
+    if (rdp_cmd_ptr >= RDP_CMD_WORDS)
+    {
+      RDP_E("rdphalf_1 command buffer overflow\n");
+      rdp.halt = TRUE;
+      return;
+    }
     rdp_cmd_data[rdp_cmd_ptr++] = rdp.cmd1;
     cmd = (rdp_cmd_data[rdp_cmd_cur] >> 24) & 0x3f;
     rdp.cmd0 = rdp_cmd_data[rdp_cmd_cur+0];
@@ -4277,20 +4290,25 @@ EXPORT void CALL ProcessRDPList(void)
   if (dp_end <= dp_current) return;
   length = dp_end - dp_current;
 
+  if (length > sizeof(rdp_cmd_data))
+  {
+    RDP_E("rdp_process_list command buffer overflow\n");
+    FRDP("rdp_process_list: command buffer overflow %x %x --> %x\n",
+      length, dp_current, dp_end);
+    dp_current = dp_end;
+    return;
+  }
+
   // load command data
   for (i=0; i < length; i += 4)
   {
     rdp_cmd_data[rdp_cmd_ptr++] = READ_RDP_DATA(dp_current + i);
-    if (rdp_cmd_ptr >= 0x1000)
-    {
-      FRDP("rdp_process_list: rdp_cmd_ptr overflow %x %x --> %x\n", length, dp_current, dp_end);
-    }
   }
 
   dp_current = dp_end;
 
   cmd = (rdp_cmd_data[0] >> 24) & 0x3f;
-  cmd_length = (rdp_cmd_ptr + 1) * 4;
+  cmd_length = rdp_cmd_ptr * 4;
 
   // check if more data is needed
   if (cmd_length < rdp_command_length[cmd])
@@ -4306,8 +4324,8 @@ EXPORT void CALL ProcessRDPList(void)
     // execute the command
     rdp.cmd0 = rdp_cmd_data[rdp_cmd_cur+0];
     rdp.cmd1 = rdp_cmd_data[rdp_cmd_cur+1];
-    rdp.cmd2 = rdp_cmd_data[rdp_cmd_cur+2];
-    rdp.cmd3 = rdp_cmd_data[rdp_cmd_cur+3];
+    rdp.cmd2 = rdp_command_length[cmd] > 8 ? rdp_cmd_data[rdp_cmd_cur+2] : 0;
+    rdp.cmd3 = rdp_command_length[cmd] > 12 ? rdp_cmd_data[rdp_cmd_cur+3] : 0;
     rdp_command_table[cmd]();
 
     rdp_cmd_cur += rdp_command_length[cmd] / 4;
