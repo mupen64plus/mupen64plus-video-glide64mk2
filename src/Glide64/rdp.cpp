@@ -1657,6 +1657,26 @@ static void rdp_setothermode()
 void load_palette (wxUint32 addr, wxUint16 start, wxUint16 count)
 {
   LRDP("Loading palette... ");
+
+  if (count == 0)
+    return;
+
+  if (start >= 256 || count > 256 - start)
+  {
+    RDP_E ("load_palette destination out of range\n");
+    FRDP ("load_palette destination out of range: start: %u, count: %u\n",
+      (unsigned int) start, (unsigned int) count);
+    return;
+  }
+
+  if (addr > BMASK || ((unsigned long) count << 1) > BMASK - addr + 1)
+  {
+    RDP_E ("load_palette source out of range\n");
+    FRDP ("load_palette source out of range: addr: %08x, count: %u\n",
+      addr, (unsigned int) count);
+    return;
+  }
+
   wxUint16 *dpal = rdp.pal_8 + start;
   wxUint16 end = start+count;
 #ifdef TEXTURE_FILTER
@@ -1691,6 +1711,13 @@ void load_palette (wxUint32 addr, wxUint16 start, wxUint16 count)
 static void rdp_loadtlut()
 {
   wxUint32 tile = (rdp.cmd1 >> 24) & 0x07;
+
+  if (rdp.tiles[tile].t_mem < 256)
+  {
+    RDP_E ("loadtlut destination out of range\n");
+    return;
+  }
+
   wxUint16 start = rdp.tiles[tile].t_mem - 256; // starting location in the palettes
   //  wxUint16 start = ((wxUint16)(rdp.cmd1 >> 2) & 0x3FF) + 1;
   wxUint16 count = ((wxUint16)(rdp.cmd1 >> 14) & 0x3FF) + 1;    // number to copy
