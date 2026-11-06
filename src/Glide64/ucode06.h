@@ -1456,9 +1456,8 @@ static void uc6_loaducode ()
   // copy the microcode data
   wxUint32 addr = segoffset(rdp.cmd1);
   wxUint32 size = (rdp.cmd0 & 0xFFFF) + 1;
-  memcpy (microcode, gfx.RDRAM+addr, size);
-
-  microcheck ();
+  if (load_microcode(addr, size))
+    microcheck ();
 }
 
 void uc6_sprite2d ()

@@ -207,6 +207,28 @@ wxUint8 microcode[4096];
 wxUint32 uc_crc;
 void microcheck ();
 
+static bool load_microcode(wxUint32 addr, wxUint32 size)
+{
+  if (size > sizeof(microcode))
+  {
+    RDP_E ("microcode destination out of range\n");
+    FRDP ("microcode destination out of range: size: %u\n",
+      (unsigned int) size);
+    return false;
+  }
+
+  if (addr > BMASK || (unsigned long) size > BMASK - addr + 1)
+  {
+    RDP_E ("microcode source out of range\n");
+    FRDP ("microcode source out of range: addr: %08x, size: %u\n",
+      addr, (unsigned int) size);
+    return false;
+  }
+
+  memcpy (microcode, gfx.RDRAM + addr, size);
+  return true;
+}
+
 // ** UCODE FUNCTIONS **
 #include "ucode00.h"
 #include "ucode01.h"
@@ -646,8 +668,8 @@ EXPORT void CALL ProcessDList(void)
     {
       // Thanks to ZeZu for ucode autodetection!!!
       wxUint32 startUcode = *(wxUint32*)(gfx.DMEM+0xFD0);
-      memcpy (microcode, gfx.RDRAM+startUcode, 4096);
-      microcheck ();
+      if (load_microcode(startUcode, sizeof(microcode)))
+        microcheck ();
     }
     else
       memset (microcode, 0, 4096);
@@ -655,8 +677,8 @@ EXPORT void CALL ProcessDList(void)
   else if ( ((old_ucode == ucode_S2DEX) && (settings.ucode == ucode_F3DEX)) || settings.force_microcheck)
   {
     wxUint32 startUcode = *(wxUint32*)(gfx.DMEM+0xFD0);
-    memcpy (microcode, gfx.RDRAM+startUcode, 4096);
-    microcheck ();
+    if (load_microcode(startUcode, sizeof(microcode)))
+      microcheck ();
   }
 
   if (exception)
