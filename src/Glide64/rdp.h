@@ -52,6 +52,7 @@ extern wxUint32 frame_count; // frame counter
 #define MAX_CACHE   1024*4
 #define MAX_TRI_CACHE 768 // this is actually # of vertices, not triangles
 #define MAX_VTX     256
+#define MAX_LIGHTS  12
 
 #define MAX_TMU     2
 
@@ -731,8 +732,8 @@ struct RDP_Base{
 
   // Lighting
   wxUint32 num_lights;
-  LIGHT light[12];
-  float light_vector[12][3];
+  LIGHT light[MAX_LIGHTS];
+  float light_vector[MAX_LIGHTS][3];
   float lookat[2][3];
   int  use_lookat;
 

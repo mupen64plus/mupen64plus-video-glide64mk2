@@ -603,6 +603,11 @@ static void uc2_moveword ()
 
   case 0x02:
     rdp.num_lights = data / 24;
+    if (rdp.num_lights >= MAX_LIGHTS)
+    {
+      RDP_E ("uc2:moveword light count out of range\n");
+      rdp.num_lights = 0;
+    }
     rdp.update |= UPDATE_LIGHTS;
     FRDP ("numlights: %d\n", rdp.num_lights);
     break;
@@ -642,6 +647,12 @@ static void uc2_moveword ()
     {
       int n = offset / 24;
       FRDP ("lightcol light:%d, %08x\n", n, data);
+
+      if (n >= MAX_LIGHTS)
+      {
+        RDP_E ("uc2:moveword light index out of range\n");
+        return;
+      }
 
       rdp.light[n].r = (float)((data >> 24) & 0xFF) / 255.0f;
       rdp.light[n].g = (float)((data >> 16) & 0xFF) / 255.0f;

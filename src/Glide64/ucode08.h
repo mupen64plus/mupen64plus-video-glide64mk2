@@ -162,7 +162,7 @@ static void uc8_vertex ()
 			if (rdp.geom_mode & 0x00400000)
 			{
 				NormalizeVector (v->vec);
-				for (l = 0; l < rdp.num_lights-1; l++)
+				for (l = 0; l + 1 < rdp.num_lights; l++)
         {
           if (!rdp.light[l].nonblack)
             continue;
@@ -189,15 +189,18 @@ static void uc8_vertex ()
           color[2] += rdp.light[l].b * light_intensity;
           FRDP("light %d r: %f, g: %f, b: %f\n", l, color[0], color[1], color[2]);
         }
-        light_intensity = DotProduct (rdp.light_vector[l], v->vec);
-        FRDP("light %d, intensity : %f\n", l, light_intensity);
-        if (light_intensity > 0.0f)
+        if (l < rdp.num_lights)
         {
-          color[0] += rdp.light[l].r * light_intensity;
-          color[1] += rdp.light[l].g * light_intensity;
-          color[2] += rdp.light[l].b * light_intensity;
+          light_intensity = DotProduct (rdp.light_vector[l], v->vec);
+          FRDP("light %d, intensity : %f\n", l, light_intensity);
+          if (light_intensity > 0.0f)
+          {
+            color[0] += rdp.light[l].r * light_intensity;
+            color[1] += rdp.light[l].g * light_intensity;
+            color[2] += rdp.light[l].b * light_intensity;
+          }
+          FRDP("light %d r: %f, g: %f, b: %f\n", l, color[0], color[1], color[2]);
         }
-        FRDP("light %d r: %f, g: %f, b: %f\n", l, color[0], color[1], color[2]);
       }
 			else
 			{
@@ -248,6 +251,11 @@ static void uc8_moveword ()
 
 	case 0x02:
 		rdp.num_lights = (data / 48);
+		if (rdp.num_lights >= MAX_LIGHTS)
+		{
+			RDP_E ("uc8:moveword light count out of range\n");
+			rdp.num_lights = 0;
+		}
 		rdp.update |= UPDATE_LIGHTS;
 		FRDP ("numlights: %d\n", rdp.num_lights);
 		break;
@@ -384,7 +392,12 @@ static void uc8_movemem ()
               FRDP("lookat_%d (%f, %f, %f)\n", n, rdp.lookat[n][0], rdp.lookat[n][1], rdp.lookat[n][2]);
               return;
             }
-            n -= 2;
+			n -= 2;
+			if (n >= MAX_LIGHTS)
+			{
+				RDP_E ("uc8:movemem light index out of range\n");
+				return;
+			}
 			wxUint8 col = gfx.RDRAM[BYTEADDR(addr+0)];
 			rdp.light[n].r = (float)col / 255.0f;
 			rdp.light[n].nonblack = col;

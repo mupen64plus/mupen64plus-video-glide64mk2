@@ -251,6 +251,12 @@ static void uc9_fmlight ()
 {
   int mid = rdp.cmd0&0xFF;
   rdp.num_lights = 1 + ((rdp.cmd1>>12)&0xFF);
+  if (rdp.num_lights >= MAX_LIGHTS)
+  {
+    RDP_E ("uc9:fmlight light count out of range\n");
+    rdp.num_lights = 0;
+    return;
+  }
   wxUint32 a = -1024 + (rdp.cmd1&0xFFF);
   FRDP ("uc9:fmlight matrix: %d, num: %d, dmem: %04x\n", mid, rdp.num_lights, a);
 
